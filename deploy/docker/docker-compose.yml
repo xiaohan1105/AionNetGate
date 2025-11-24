@@ -29,19 +29,16 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - SERVER_NAME=${SERVER_NAME:-我的永恒之塔}
       - GATEWAY_PORT=${GATEWAY_PORT:-10001}
-      - DB_PROVIDER=${DB_PROVIDER:-mysql}
-      - DB_HOST=${DB_HOST:-postgres}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_NAME=${DB_NAME:-aiongate}
-      - DB_USER=${DB_USER:-aiongate}
+      - DB_HOST=${DB_HOST}           # MSSQL服务器地址（主机网络）
+      - DB_PORT=${DB_PORT:-1433}
+      - DB_NAME=${DB_NAME:-AionGameDB}
+      - DB_USER=${DB_USER:-sa}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -62,84 +59,9 @@ services:
       start_period: 10s
 
   # ===========================================
-  # 数据库: PostgreSQL 17 (推荐) / MySQL 9
+  # 说明: 数据库使用主机上的MSSQL Server
+  # 请确保MSSQL Server已启动并配置正确的连接信息
   # ===========================================
-  postgres:
-    image: postgres:17-alpine
-    container_name: aiongate-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-aiongate}
-      POSTGRES_USER: ${DB_USER:-aiongate}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      PGDATA: /var/lib/postgresql/data/pgdata
-      TZ: Asia/Shanghai
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ../sql/init_postgres.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    ports:
-      - "5432:5432"
-    networks:
-      - aiongate-network
-    command:
-      - postgres
-      - -c
-      - max_connections=200
-      - -c
-      - shared_buffers=256MB
-      - -c
-      - effective_cache_size=1GB
-      - -c
-      - maintenance_work_mem=64MB
-      - -c
-      - checkpoint_completion_target=0.9
-      - -c
-      - wal_buffers=16MB
-      - -c
-      - default_statistics_target=100
-      - -c
-      - random_page_cost=1.1
-      - -c
-      - effective_io_concurrency=200
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-aiongate}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  # MySQL 9 (可选，用于向后兼容)
-  mysql:
-    image: mysql:9.1
-    profiles:
-      - mysql
-    container_name: aiongate-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME:-aiongate}
-      MYSQL_USER: ${DB_USER:-aiongate}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      TZ: Asia/Shanghai
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ../sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    ports:
-      - "3306:3306"
-    networks:
-      - aiongate-network
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-      - --max_connections=200
-      - --innodb_buffer_pool_size=256M
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   # ===========================================
   # 缓存: Redis
@@ -225,10 +147,6 @@ services:
 # 数据卷
 # ===========================================
 volumes:
-  postgres-data:
-    driver: local
-  mysql-data:
-    driver: local
   redis-data:
     driver: local
   aiongate-logs:

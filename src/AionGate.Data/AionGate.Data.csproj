@@ -8,13 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- PostgreSQL (推荐) -->
-    <PackageReference Include="Npgsql" Version="9.0.2" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
-
-    <!-- MySQL (兼容) -->
-    <PackageReference Include="MySqlConnector" Version="2.4.0" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <!-- MSSQL Server (统一使用) -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
 
     <!-- Entity Framework Core -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
@@ -35,8 +31,7 @@
     <!-- 迁移工具 -->
     <PackageReference Include="FluentMigrator" Version="6.2.0" />
     <PackageReference Include="FluentMigrator.Runner" Version="6.2.0" />
-    <PackageReference Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
-    <PackageReference Include="FluentMigrator.Runner.MySql" Version="6.2.0" />
+    <PackageReference Include="FluentMigrator.Runner.SqlServer" Version="6.2.0" />
 
     <!-- 缓存 -->
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />

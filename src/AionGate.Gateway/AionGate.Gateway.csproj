@@ -39,7 +39,7 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
 
     <!-- 数据库 -->
-    <PackageReference Include="Npgsql" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="Dapper" Version="2.1.44" />
     <PackageReference Include="DapperAOT" Version="1.0.31" />
 

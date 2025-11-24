@@ -81,14 +81,14 @@ auth:
     type: "totp"  # totp | email | sms
 
 database:
-  # 数据库提供者: mysql | postgresql | mssql
-  provider: ${DB_PROVIDER:mysql}
+  # 统一使用 MSSQL (服务器已有游戏数据库)
+  provider: mssql
 
-  # 连接信息
+  # MSSQL 连接信息
   host: ${DB_HOST:localhost}
-  port: ${DB_PORT:3306}
-  name: ${DB_NAME:aiongate}
-  user: ${DB_USER:root}
+  port: ${DB_PORT:1433}
+  name: ${DB_NAME:AionGameDB}  # 使用游戏服务器的数据库
+  user: ${DB_USER:sa}
   password: ${DB_PASSWORD}
 
   # 连接池配置
@@ -98,10 +98,11 @@ database:
     connection_lifetime: 30m
     idle_timeout: 10m
 
-  # 高级选项
+  # MSSQL 高级选项
   options:
-    charset: "utf8mb4"
-    ssl_mode: "preferred"
+    encrypt: false
+    trust_server_certificate: true
+    multiple_active_result_sets: true
     command_timeout: 30
 
 cache:

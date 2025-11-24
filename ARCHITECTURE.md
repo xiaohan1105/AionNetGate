@@ -66,7 +66,7 @@
 │  │                                                                          │    │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │    │
 │  │  │ Database    │  │ Cache       │  │ Message     │  │ Config          │ │    │
-│  │  │ (MySQL/PG)  │  │ (Redis)     │  │ Queue       │  │ (Consul/File)   │ │    │
+│  │  │ (MSSQL)     │  │ (Redis)     │  │ Queue       │  │ (Consul/File)   │ │    │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────┘ │    │
 │  │                                                                          │    │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │    │
@@ -355,13 +355,16 @@ auth:
     require_number: true
 
 database:
-  provider: mysql  # mysql | postgresql | mssql
+  provider: mssql  # 统一使用 MSSQL Server
   host: ${DB_HOST:localhost}
-  port: ${DB_PORT:3306}
-  name: ${DB_NAME:aiongate}
-  user: ${DB_USER:root}
+  port: ${DB_PORT:1433}
+  name: ${DB_NAME:AionGameDB}  # 使用游戏服务器数据库
+  user: ${DB_USER:sa}
   password: ${DB_PASSWORD}  # 从环境变量或Vault读取
   pool_size: 20
+  options:
+    encrypt: false
+    trust_server_certificate: true
 
 defense:
   rate_limit:
@@ -490,11 +493,12 @@ services:
       - ./data:/app/data
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - DB_HOST=mysql
+      - DB_HOST=${DB_HOST}  # 主机上的MSSQL地址
+      - DB_PORT=1433
+      - DB_NAME=AionGameDB
+      - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_started
     networks:
@@ -505,23 +509,8 @@ services:
           cpus: '2'
           memory: 2G
 
-  mysql:
-    image: mysql:8.0
-    container_name: aiongate-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: aiongate
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./deploy/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - aiongate-network
+  # 注意: 数据库使用主机上已有的MSSQL Server
+  # 无需在Docker中运行数据库服务
 
   redis:
     image: redis:7-alpine
@@ -557,7 +546,6 @@ services:
       - aiongate-network
 
 volumes:
-  mysql-data:
   redis-data:
   prometheus-data:
   grafana-data:
@@ -637,6 +625,15 @@ config_wizard() {
     read -p "请输入管理员密码: " -s ADMIN_PASSWORD
     echo ""
 
+    read -p "请输入MSSQL数据库地址 (默认: localhost): " DB_HOST
+    DB_HOST=${DB_HOST:-localhost}
+
+    read -p "请输入MSSQL数据库用户 (默认: sa): " DB_USER
+    DB_USER=${DB_USER:-sa}
+
+    read -p "请输入MSSQL数据库密码: " -s DB_PASSWORD
+    echo ""
+
     # 生成随机密钥
     JWT_SECRET=$(openssl rand -base64 32)
     ENCRYPTION_KEY=$(openssl rand -base64 32)
@@ -646,8 +643,11 @@ config_wizard() {
 # AionGate 环境配置 - 自动生成于 $(date)
 SERVER_NAME=$SERVER_NAME
 GATEWAY_PORT=$GATEWAY_PORT
-DB_PASSWORD=$MYSQL_PASSWORD
-MYSQL_ROOT_PASSWORD=$MYSQL_PASSWORD
+DB_HOST=$DB_HOST
+DB_PORT=1433
+DB_NAME=AionGameDB
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
 ADMIN_USER=$ADMIN_USER
 ADMIN_PASSWORD=$ADMIN_PASSWORD
 JWT_SECRET=$JWT_SECRET

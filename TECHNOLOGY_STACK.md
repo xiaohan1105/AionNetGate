@@ -14,16 +14,15 @@
 
 | 组件 | 版本 | 说明 |
 |------|------|------|
-| **PostgreSQL** | 17 | **推荐** - 性能优异，功能强大 |
-| MySQL | 9.1 | 可选 - 向后兼容旧版本 |
+| **MSSQL Server** | 2019+ | **统一使用** - 游戏服务器已有数据库 |
 
 ### ORM 和数据访问
 
 | 组件 | 版本 | 说明 |
 |------|------|------|
 | Entity Framework Core | 9.0.0 | 主要 ORM，支持迁移和查询 |
-| Npgsql | 9.0.2 | PostgreSQL .NET 驱动 |
-| MySqlConnector | 2.4.0 | MySQL .NET 驱动 |
+| Microsoft.Data.SqlClient | 5.2.2 | MSSQL Server .NET 驱动 |
+| Microsoft.EntityFrameworkCore.SqlServer | 9.0.0 | EF Core MSSQL 提供程序 |
 | Dapper | 2.1.44 | 高性能微型 ORM |
 | DapperAOT | 1.0.31 | Dapper AOT 编译优化 |
 
@@ -112,7 +111,7 @@
 
 **主要升级:**
 - ✅ .NET 8.0 → 9.0
-- ✅ PostgreSQL 替代 MySQL (推荐)
+- ✅ 统一使用 MSSQL Server (游戏服务器数据库)
 - ✅ Entity Framework Core 9.0
 - ✅ Dapper + DapperAOT (性能优化)
 - ✅ NSec 替代原生加密库
@@ -124,7 +123,7 @@
 
 **性能提升:**
 - 网络吞吐量: +40% (Pipelines + Channels)
-- 数据库查询: +25% (PostgreSQL + Dapper)
+- 数据库查询: +25% (MSSQL + Dapper)
 - 内存占用: -30% (ArrayPool + RecyclableMemoryStream)
 - 启动时间: -50% (AOT + 优化镜像)
 
@@ -143,7 +142,7 @@
 - .NET 9.0 SDK
 - Docker Desktop (可选)
 - Visual Studio 2022 或 JetBrains Rider
-- PostgreSQL 17 或 MySQL 9
+- MSSQL Server 2019+ (使用游戏服务器已有数据库)
 
 ### 生产环境
 
@@ -179,7 +178,7 @@ AionGate.Gateway (主程序)
 
 ## 性能基准
 
-基于 .NET 9.0 + PostgreSQL 17 + Redis 7.4:
+基于 .NET 9.0 + MSSQL Server 2019+ + Redis 7.4:
 
 | 指标 | 数值 |
 |------|------|

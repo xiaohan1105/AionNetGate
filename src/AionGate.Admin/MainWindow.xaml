@@ -78,6 +78,7 @@
                 <ui:NavigationViewItem Icon="People" Content="玩家管理" Tag="Players"/>
                 <ui:NavigationViewItem Icon="Shop" Content="商城管理" Tag="Shop"/>
                 <ui:NavigationViewItem Icon="Message" Content="公告管理" Tag="Announcements"/>
+                <ui:NavigationViewItem Icon="Link" Content="渠道分发" Tag="Channels"/>
                 <ui:NavigationViewItem Icon="Calculator" Content="数据统计" Tag="Statistics"/>
                 <ui:NavigationViewItem Icon="Warning" Content="外挂检测" Tag="AntiCheat"/>
                 <ui:NavigationViewItem Icon="Admin" Content="系统工具" Tag="Tools"/>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>永恒之塔 - 游戏主页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .announcements {
+            list-style: none;
+        }
+
+        .announcement-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .announcement-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .announcement-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .announcement-date {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .shop-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .shop-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .shop-item img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .shop-item-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .shop-item-price {
+            font-size: 20px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .price-label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: #ffc107;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .tag.hot {
+            background: #dc3545;
+        }
+
+        .tag.new {
+            background: #28a745;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .server-status {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px 0;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>永恒之塔</h1>
+            <p>欢迎来到永恒之塔的世界</p>
+        </div>
+
+        <!-- 服务器状态 -->
+        <div class="section">
+            <h2>服务器状态</h2>
+            <div class="server-status">
+                <div class="status-item">
+                    <div class="status-value" id="onlineCount">-</div>
+                    <div class="status-label">在线人数</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" id="totalUsers">-</div>
+                    <div class="status-label">注册账号</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" style="color: #28a745;">运行中</div>
+                    <div class="status-label">服务器状态</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最新公告 -->
+        <div class="section">
+            <h2>最新公告</h2>
+            <ul class="announcements" id="announcements">
+                <li class="loading">加载中...</li>
+            </ul>
+        </div>
+
+        <!-- 热门商品 -->
+        <div class="section">
+            <h2>热门商品</h2>
+            <div class="shop-items" id="shopItems">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        // 加载公告
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch(`${API_BASE}/announcement/latest?count=5`);
+                const data = await response.json();
+
+                const container = document.getElementById('announcements');
+                if (data.length === 0) {
+                    container.innerHTML = '<li class="loading">暂无公告</li>';
+                    return;
+                }
+
+                container.innerHTML = data.map(item => `
+                    <li class="announcement-item" onclick="viewAnnouncement(${item.id})">
+                        ${item.is_pinned ? '<span class="tag">置顶</span>' : ''}
+                        ${item.type === 2 ? '<span class="tag hot">活动</span>' : ''}
+                        <div class="announcement-title">${item.title}</div>
+                        <div class="announcement-date">${new Date(item.published_at).toLocaleDateString()}</div>
+                    </li>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load announcements:', error);
+            }
+        }
+
+        // 加载商品
+        async function loadShopItems() {
+            try {
+                const response = await fetch(`${API_BASE}/shop/items?pageSize=8`);
+                const data = await response.json();
+
+                const container = document.getElementById('shopItems');
+                if (data.items.length === 0) {
+                    container.innerHTML = '<div class="loading">暂无商品</div>';
+                    return;
+                }
+
+                container.innerHTML = data.items.map(item => `
+                    <div class="shop-item" onclick="buyItem(${item.id})">
+                        <img src="${item.image_url || '/assets/item-placeholder.png'}" alt="${item.name}">
+                        ${item.is_hot ? '<span class="tag hot">热卖</span>' : ''}
+                        ${item.is_new ? '<span class="tag new">新品</span>' : ''}
+                        <div class="shop-item-name">${item.name}</div>
+                        <div class="shop-item-price">
+                            ${item.price} <span class="price-label">点券</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load shop items:', error);
+            }
+        }
+
+        // 查看公告详情
+        function viewAnnouncement(id) {
+            window.open(`/announcement.html?id=${id}`, '_blank');
+        }
+
+        // 购买商品
+        function buyItem(id) {
+            alert('请在启动器中登录后购买');
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnnouncements();
+            loadShopItems();
+
+            // 模拟在线人数（实际应从API获取）
+            document.getElementById('onlineCount').textContent = '1,234';
+            document.getElementById('totalUsers').textContent = '15,678';
+        });
+    </script>
+</body>
+</html>

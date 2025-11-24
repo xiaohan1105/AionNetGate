@@ -1,0 +1,146 @@
+# ===========================================
+# .NET 项目忽略文件
+# ===========================================
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build Results
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# ===========================================
+# 环境和配置
+# ===========================================
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+appsettings.Production.json
+*.secret
+
+# ===========================================
+# 数据库
+# ===========================================
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ===========================================
+# Docker
+# ===========================================
+docker-compose.override.yml
+
+# ===========================================
+# 日志和数据
+# ===========================================
+logs/
+data/
+*.log
+
+# ===========================================
+# OS
+# ===========================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===========================================
+# 临时文件
+# ===========================================
+*.tmp
+*.bak
+*.swp
+*~
+
+# ===========================================
+# 测试覆盖率
+# ===========================================
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
+
+# ===========================================
+# Benchmark 结果
+# ===========================================
+BenchmarkDotNet.Artifacts/
+
+# ===========================================
+# 发布输出
+# ===========================================
+publish/

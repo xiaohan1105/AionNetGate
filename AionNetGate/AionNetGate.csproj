@@ -1,0 +1,367 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9B1FCD64-1BA0-4136-A88C-E8C55994BCA8}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AionNetGate</RootNamespace>
+    <AssemblyName>通用网关</AssemblyName>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>发布\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>图标.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AionCommons, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\AionCommons.dll</HintPath>
+    </Reference>
+    <Reference Include="BSE.Windows.Forms, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>.\BSE.Windows.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="MySql.Data">
+      <HintPath>I:\VS工作区AionRoy\AionServerProject\AionLogin\bin\Debug\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Configs\Config.cs" />
+    <Compile Include="Configs\Core\IConfigurationSection.cs" />
+    <Compile Include="Configs\Core\ConfigurationManager.cs" />
+    <Compile Include="Configs\Core\StringHelper.cs" />
+    <Compile Include="Configs\LegacyConfigAdapter.cs" />
+    <Compile Include="Configs\Sections\ServerConfig.cs" />
+    <Compile Include="Configs\Sections\DatabaseConfig.cs" />
+    <Compile Include="Configs\Sections\LoggingConfig.cs" />
+    <Compile Include="Configs\Sections\SecurityConfig.cs" />
+    <Compile Include="DeskPictureForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeskPictureForm.Designer.cs">
+      <DependentUpon>DeskPictureForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ExplorerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ExplorerForm.Designer.cs">
+      <DependentUpon>ExplorerForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="InfoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="InfoForm.Designer.cs">
+      <DependentUpon>InfoForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Launcher\DesignLauncher.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Launcher\DesignLauncher.Designer.cs">
+      <DependentUpon>DesignLauncher.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Launcher\LauncherSetting.cs" />
+    <Compile Include="Launcher\MButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Launcher\MButton.Designer.cs">
+      <DependentUpon>MButton.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Logs\LogHelper.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Md5Form.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Md5Form.Designer.cs">
+      <DependentUpon>Md5Form.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Modles\LauncherInfo.cs" />
+    <Compile Include="Netwok\AionConnection.cs" />
+    <Compile Include="Netwok\AionPackets.cs" />
+    <Compile Include="Netwok\Client\CM_ACCOUNT_REQUEST.cs" />
+    <Compile Include="Netwok\Client\CM_COMPUTER_INFO.cs" />
+    <Compile Include="Netwok\Client\CM_CONNECT_REQUEST.cs" />
+    <Compile Include="Netwok\Client\CM_EXPLORER_PC.cs" />
+    <Compile Include="Netwok\Client\CM_PICTURE_INFO.cs" />
+    <Compile Include="Netwok\Client\CM_PING.cs" />
+    <Compile Include="Netwok\Client\CM_REGEDIT_LIST.cs" />
+    <Compile Include="Netwok\Client\CM_RUNNING_PROCESSES.cs" />
+    <Compile Include="Netwok\Client\CM_SERVICES_LIST.cs" />
+    <Compile Include="Netwok\Client\CM_WAIGUA_INFO.cs" />
+    <Compile Include="Netwok\Server\SM_ACCOUNT_FINISHED.cs" />
+    <Compile Include="Netwok\Server\SM_CHECK_ONLINE.cs" />
+    <Compile Include="Netwok\Server\SM_CONNECT_FINISHED.cs" />
+    <Compile Include="Netwok\Server\SM_COMPUTER_INFO.cs" />
+    <Compile Include="Netwok\Server\SM_EXPLORER_PC.cs" />
+    <Compile Include="Netwok\Server\SM_PICTURE_INFO.cs" />
+    <Compile Include="Netwok\Server\SM_PONG.cs" />
+    <Compile Include="Netwok\Server\SM_REGEDIT_LIST.cs" />
+    <Compile Include="Netwok\Server\SM_RUNNING_PROCESSES.cs" />
+    <Compile Include="Netwok\Server\SM_SERVICES_LIST.cs" />
+    <Compile Include="Netwok\Server\SM_WAIGUA_INFO.cs" />
+    <Compile Include="PatchForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PatchForm.Designer.cs">
+      <DependentUpon>PatchForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ProcessForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ProcessForm.Designer.cs">
+      <DependentUpon>ProcessForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Regedit.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Regedit.Designer.cs">
+      <DependentUpon>Regedit.cs</DependentUpon>
+    </Compile>
+    <Compile Include="RegeditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RegeditForm.Designer.cs">
+      <DependentUpon>RegeditForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="RegForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RegForm.Designer.cs">
+      <DependentUpon>RegForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ServiceListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ServiceListForm.Designer.cs">
+      <DependentUpon>ServiceListForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Services\AccountService.cs" />
+    <Compile Include="Services\DefenseService.cs" />
+    <Compile Include="Services\DownFileServer.cs" />
+    <Compile Include="Services\MailService.cs" />
+    <Compile Include="Services\MainService.cs" />
+    <Compile Include="UpdateFile.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UpdateFile.Designer.cs">
+      <DependentUpon>UpdateFile.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="DeskPictureForm.resx">
+      <DependentUpon>DeskPictureForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ExplorerForm.resx">
+      <DependentUpon>ExplorerForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="InfoForm.resx">
+      <DependentUpon>InfoForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Launcher\DesignLauncher.resx">
+      <DependentUpon>DesignLauncher.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Md5Form.resx">
+      <DependentUpon>Md5Form.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PatchForm.resx">
+      <DependentUpon>PatchForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ProcessForm.resx">
+      <DependentUpon>ProcessForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="app.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Regedit.resx">
+      <DependentUpon>Regedit.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RegeditForm.resx">
+      <DependentUpon>RegeditForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RegForm.resx">
+      <DependentUpon>RegForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ServiceListForm.resx">
+      <DependentUpon>ServiceListForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UpdateFile.resx">
+      <DependentUpon>UpdateFile.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="图标.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Close1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Close2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Close3.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\背景.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\进度.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\启动_CN1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\启动_CN2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\启动按下.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\启动常规.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\启动移动.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\修改密码1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\修改密码2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\修改密码3.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="MySql.Data.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Resources\无标题.jpg" />
+    <None Include="Resources\账号确认1.png" />
+    <None Include="Resources\账号确认.png" />
+    <None Include="Resources\X绿色图片.png" />
+    <None Include="Resources\X黄色图片.png" />
+    <None Include="Resources\X红色图片.png" />
+    <None Include="Resources\SkinButtonNormlBack.png" />
+    <None Include="Resources\SkinButtonMouseBack.png" />
+    <None Include="Resources\SkinButtonDownBack.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>cmd /c $(SolutionDir)protect\Reactor.dat -file $(TargetPath) -project $(SolutionDir)protect\Owner.dat -targetfile $(TargetDir)已加壳\$(TargetName)_Ractor.exe -q
+
+$(SolutionDir)protect\TMLicense64.dat /protect $(SolutionDir)protect\Owner.tmd /inputfile $(TargetDir)已加壳\$(TargetName)_Ractor.exe /outputfile $(TargetDir)已加壳\$(TargetName)$(PlatformName)$(TargetExt)
+</PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

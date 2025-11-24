@@ -1,0 +1,239 @@
+# ===========================================
+# AionGate 2.0 配置文件
+# ===========================================
+# 使用 ${ENV_VAR:default} 语法引用环境变量
+# 敏感信息应通过环境变量或密钥管理服务提供
+
+server:
+  # 服务器基本信息
+  name: ${SERVER_NAME:我的永恒之塔}
+  description: "欢迎来到永恒之塔私服"
+  version: "2.0.0"
+
+  # 网络配置
+  bind_address: "0.0.0.0"
+  port: ${GATEWAY_PORT:10001}
+  max_connections: 1000
+  backlog: 100
+
+  # 性能配置
+  worker_threads: ${WORKER_THREADS:0}  # 0 = 自动检测CPU核心数
+  io_threads: 2
+  buffer_size: 8192
+
+network:
+  # 协议配置
+  protocol_version: 2
+  legacy_support: true  # 支持旧版XOR协议
+
+  # 加密配置
+  encryption:
+    algorithm: "aes-256-gcm"
+    key_exchange: "ecdh-p256"
+    # 密钥从环境变量加载，不要硬编码！
+    master_key: ${ENCRYPTION_KEY}
+
+  # 压缩配置
+  compression:
+    enabled: true
+    threshold: 256  # 超过256字节才压缩
+    algorithm: "gzip"
+
+  # 心跳配置
+  heartbeat:
+    interval: 30  # 秒
+    timeout: 90   # 3次心跳未响应则断开
+    grace_period: 5
+
+  # 连接配置
+  connection:
+    timeout: 300        # 空闲超时（秒）
+    read_timeout: 30
+    write_timeout: 30
+
+auth:
+  # JWT配置
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: "aiongate"
+    audience: "aiongate-client"
+    access_token_expiry: 24h
+    refresh_token_expiry: 7d
+
+  # 密码策略
+  password:
+    algorithm: "argon2id"
+    min_length: 8
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: false
+
+  # 登录限制
+  login:
+    max_attempts: 5
+    lockout_duration: 15m
+    lockout_increment: true  # 每次锁定时间递增
+
+  # 多因素认证 (可选)
+  mfa:
+    enabled: false
+    type: "totp"  # totp | email | sms
+
+database:
+  # 数据库提供者: mysql | postgresql | mssql
+  provider: ${DB_PROVIDER:mysql}
+
+  # 连接信息
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:3306}
+  name: ${DB_NAME:aiongate}
+  user: ${DB_USER:root}
+  password: ${DB_PASSWORD}
+
+  # 连接池配置
+  pool:
+    min_size: 5
+    max_size: 20
+    connection_lifetime: 30m
+    idle_timeout: 10m
+
+  # 高级选项
+  options:
+    charset: "utf8mb4"
+    ssl_mode: "preferred"
+    command_timeout: 30
+
+cache:
+  # Redis配置
+  redis:
+    enabled: ${REDIS_ENABLED:true}
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    key_prefix: "aiongate:"
+
+  # 本地缓存
+  local:
+    max_entries: 10000
+    expiry: 5m
+
+defense:
+  # 速率限制
+  rate_limit:
+    enabled: true
+    requests_per_second: 100
+    burst_size: 200
+    by_ip: true
+
+  # DDoS防护
+  ddos:
+    enabled: true
+    connection_threshold: 50  # 单IP最大连接数
+    syn_threshold: 20         # 10秒内最大新连接数
+    block_duration: 1h
+
+  # IP黑名单
+  blacklist:
+    enabled: true
+    auto_block: true
+    file: "config/blacklist.txt"
+
+  # 白名单
+  whitelist:
+    enabled: false
+    file: "config/whitelist.txt"
+
+launcher:
+  # 游戏客户端配置
+  game:
+    bin32: "bin32/aion.bin"
+    bin64: "bin64/aion.bin"
+    args: "-cc:5 -lang:chs -noweb -nowebshop -nokicks -nobs -ncg -ls -charnamemenu"
+
+  # 更新配置
+  update:
+    enabled: true
+    url: ${UPDATE_URL:http://localhost/update/}
+    check_md5: true
+    force_update: false
+
+  # 双线路支持
+  dual_line:
+    enabled: false
+    primary_ip: ${PRIMARY_IP:}
+    secondary_ip: ${SECONDARY_IP:}
+
+anti_cheat:
+  # 外挂检测
+  enabled: true
+  scan_interval: 5s
+  close_on_detect: true
+  report_to_server: true
+
+  # 检测规则
+  rules:
+    # 进程名检测
+    processes:
+      - cheatengine.exe
+      - cheatengine-x86_64.exe
+      - speedhack.exe
+      - lighthack.exe
+      - aionscript.exe
+      - ollydbg.exe
+      - x64dbg.exe
+
+    # MD5检测 (已知外挂文件)
+    md5_hashes: []
+
+    # 窗口类名检测
+    window_classes:
+      - "Window"
+      - "WTWindow"
+      - "OLLYDBG"
+
+monitoring:
+  # 健康检查
+  health:
+    enabled: true
+    port: 9090
+    path: "/health"
+
+  # Prometheus指标
+  metrics:
+    enabled: true
+    port: 9091
+    path: "/metrics"
+
+  # 日志配置
+  logging:
+    level: ${LOG_LEVEL:info}  # trace | debug | info | warn | error
+    format: "json"           # json | text
+    output:
+      - type: console
+      - type: file
+        path: "logs/aiongate.log"
+        rolling:
+          max_size: 100MB
+          max_files: 10
+          compress: true
+
+  # 告警配置
+  alerting:
+    enabled: true
+    channels:
+      - type: email
+        smtp_host: ${SMTP_HOST:}
+        smtp_port: ${SMTP_PORT:587}
+        from: ${SMTP_FROM:}
+        to: ${ALERT_EMAIL:}
+      # - type: webhook
+      #   url: ${WEBHOOK_URL:}
+
+# 管理界面配置
+admin:
+  enabled: true
+  port: 8080
+  username: ${ADMIN_USER:admin}
+  password: ${ADMIN_PASSWORD}  # 首次运行时必须修改

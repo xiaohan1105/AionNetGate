@@ -1,0 +1,67 @@
+# 合并的外挂检测配置
+# 来源: AionNetGate + Aion Launcher back in black
+# 格式说明:
+#   EXENAME=进程名.exe    - 按进程名检测
+#   EXEMD5=MD5哈希值      - 按文件MD5检测
+#   EXECLASS=窗口类名     - 按窗口类名检测
+
+# ==================== 进程名检测 ====================
+# 通用作弊工具
+EXENAME=cheatengine.exe
+EXENAME=cheatengine-x86_64.exe
+EXENAME=ce.exe
+
+# Aion 专用外挂 (来自 back in black)
+EXENAME=lighthack.exe
+EXENAME=aion f2p litehack.exe
+EXENAME=aihackon.exe
+EXENAME=libeay32.exe
+EXENAME=phx.exe
+EXENAME=acp.exe
+EXENAME=walker.exe
+EXENAME=wss.exe
+EXENAME=hlapex.exe
+EXENAME=clicker.exe
+EXENAME=avk.exe
+EXENAME=l2px.exe
+EXENAME=lookout.exe
+EXENAME=aionscript.exe
+EXENAME=flightpath.exe
+EXENAME=annimation.exe
+EXENAME=lion.exe
+EXENAME=radar.exe
+EXENAME=rubot.exe
+EXENAME=angelbot.exe
+EXENAME=packet.exe
+EXENAME=noanim.exe
+EXENAME=speedhack.exe
+EXENAME=speed.exe
+EXENAME=inject.exe
+
+# 通用注入/内存工具
+EXENAME=ollydbg.exe
+EXENAME=x64dbg.exe
+EXENAME=x32dbg.exe
+EXENAME=ida.exe
+EXENAME=ida64.exe
+EXENAME=wireshark.exe
+EXENAME=fiddler.exe
+
+# 自动化工具
+EXENAME=autoit.exe
+EXENAME=autohotkey.exe
+EXENAME=ahk.exe
+
+# ==================== MD5 检测 ====================
+# 在这里添加已知外挂的MD5哈希值
+# EXEMD5=1234567890ABCDEF1234567890ABCDEF
+
+# ==================== 窗口类名检测 ====================
+# 通用外挂窗口类名
+EXECLASS=Window
+EXECLASS=WTWindow
+EXECLASS=ThunderRT6FormDC
+
+# 调试器窗口
+EXECLASS=OLLYDBG
+EXECLASS=ID

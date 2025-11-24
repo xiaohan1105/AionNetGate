@@ -37,6 +37,7 @@ public partial class MainWindow : Window
             "Shop" => typeof(ShopManagementPage),
             "Announcements" => typeof(AnnouncementsPage),
             "Channels" => typeof(ChannelsPage),
+            "Updates" => typeof(UpdatesPage),
             "Statistics" => typeof(StatisticsPage),
             "AntiCheat" => typeof(AntiCheatPage),
             "Tools" => typeof(ToolsPage),

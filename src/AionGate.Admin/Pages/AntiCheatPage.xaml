@@ -1,0 +1,9 @@
+<Page x:Class="AionGate.Admin.Pages.AntiCheatPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="外挂检测">
+    <Grid>
+        <TextBlock Text="外挂检测页面 - 开发中" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   FontSize="24" Opacity="0.5"/>
+    </Grid>
+</Page>

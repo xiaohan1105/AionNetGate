@@ -1,0 +1,184 @@
+<Page x:Class="AionGate.Admin.Pages.ShopManagementPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.modernwpf.com/2019"
+      Title="商城管理">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Content="➕ 添加商品" Style="{StaticResource AccentButtonStyle}"
+                        Click="AddItem_Click"/>
+                <Button Content="📊 销售报表" Click="SalesReport_Click"/>
+                <Button Content="💰 收入统计" Click="RevenueStats_Click"/>
+                <Button Content="🔄 刷新库存" Click="RefreshStock_Click"/>
+                <Separator/>
+                <ComboBox x:Name="CategoryFilter" Width="120" SelectedIndex="0">
+                    <ComboBoxItem Content="全部分类"/>
+                    <ComboBoxItem Content="装备"/>
+                    <ComboBoxItem Content="消耗品"/>
+                    <ComboBoxItem Content="材料"/>
+                    <ComboBoxItem Content="时装"/>
+                    <ComboBoxItem Content="坐骑"/>
+                    <ComboBoxItem Content="宠物"/>
+                    <ComboBoxItem Content="礼包"/>
+                    <ComboBoxItem Content="VIP"/>
+                </ComboBox>
+                <CheckBox x:Name="OnlyActiveCheck" Content="仅显示上架" IsChecked="True"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 商品列表 -->
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：商品表格 -->
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="🛒 商品列表" FontSize="16" FontWeight="Bold"
+                               Margin="0,0,0,12"/>
+
+                    <DataGrid Grid.Row="1" x:Name="ShopItemsDataGrid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              SelectionChanged="ItemSelected_Changed">
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                            <DataGridTextColumn Header="商品名称" Binding="{Binding Name}" Width="*"/>
+
+                            <DataGridTemplateColumn Header="类型" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TypeName}"
+                                                   Foreground="{Binding TypeColor}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="价格" Binding="{Binding Price}" Width="80"/>
+                            <DataGridTextColumn Header="库存" Binding="{Binding Stock}" Width="80"/>
+                            <DataGridTextColumn Header="已售" Binding="{Binding SoldCount}" Width="80"/>
+
+                            <DataGridTemplateColumn Header="状态" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding StatusColor}" CornerRadius="4"
+                                                Padding="6,2">
+                                            <TextBlock Text="{Binding StatusText}" Foreground="White"
+                                                       FontSize="11" TextAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="标签" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Border Background="#F44336" CornerRadius="3" Padding="4,2"
+                                                    Visibility="{Binding IsHotVisible}">
+                                                <TextBlock Text="🔥热卖" Foreground="White" FontSize="10"/>
+                                            </Border>
+                                            <Border Background="#4CAF50" CornerRadius="3" Padding="4,2"
+                                                    Visibility="{Binding IsNewVisible}">
+                                                <TextBlock Text="✨新品" Foreground="White" FontSize="10"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!-- 右侧：商品详情和操作 -->
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="ItemDetailsPanel" Spacing="12">
+                        <TextBlock Text="📦 商品详情" FontSize="16" FontWeight="Bold"/>
+
+                        <StackPanel x:Name="DetailsContent" Spacing="12">
+                            <!-- 商品图片 -->
+                            <Border Background="#F5F5F5" CornerRadius="8" Height="150"
+                                    HorizontalAlignment="Center" Width="150">
+                                <Image x:Name="ItemImage" Stretch="Uniform"/>
+                            </Border>
+
+                            <!-- 基本信息 -->
+                            <TextBox x:Name="ItemNameBox" ui:ControlHelper.Header="商品名称"/>
+                            <TextBox x:Name="ItemDescBox" ui:ControlHelper.Header="商品描述"
+                                     TextWrapping="Wrap" AcceptsReturn="True" Height="80"/>
+                            <TextBox x:Name="GameItemIdBox" ui:ControlHelper.Header="游戏物品ID"/>
+                            <TextBox x:Name="QuantityBox" ui:ControlHelper.Header="数量"/>
+
+                            <!-- 价格设置 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" x:Name="PriceBox"
+                                         ui:ControlHelper.Header="价格" Margin="0,0,4,0"/>
+                                <TextBox Grid.Column="1" x:Name="OriginalPriceBox"
+                                         ui:ControlHelper.Header="原价（可选）" Margin="4,0,0,0"/>
+                            </Grid>
+
+                            <!-- 库存和限购 -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" x:Name="StockBox"
+                                         ui:ControlHelper.Header="库存(-1=无限)" Margin="0,0,4,0"/>
+                                <TextBox Grid.Column="1" x:Name="LimitBox"
+                                         ui:ControlHelper.Header="限购(0=不限)" Margin="4,0,0,0"/>
+                            </Grid>
+
+                            <!-- 开关选项 -->
+                            <CheckBox x:Name="IsActiveCheck" Content="上架销售"/>
+                            <CheckBox x:Name="IsHotCheck" Content="🔥 热卖标记"/>
+                            <CheckBox x:Name="IsNewCheck" Content="✨ 新品标记"/>
+
+                            <!-- 操作按钮 -->
+                            <StackPanel Spacing="8" Margin="0,12,0,0">
+                                <Button Content="💾 保存更改" Style="{StaticResource AccentButtonStyle}"
+                                        Click="SaveItem_Click" HorizontalAlignment="Stretch"/>
+                                <Button Content="🗑️ 删除商品" Click="DeleteItem_Click"
+                                        Background="#F44336" Foreground="White"
+                                        HorizontalAlignment="Stretch"/>
+                                <Separator/>
+                                <Button Content="📊 查看销售数据" Click="ViewSales_Click"
+                                        HorizontalAlignment="Stretch"/>
+                                <Button Content="📦 调整库存" Click="AdjustStock_Click"
+                                        HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 无选中状态 -->
+                        <TextBlock x:Name="NoSelectionText" Text="👈 请从左侧选择商品"
+                                   TextAlignment="Center" Opacity="0.5" Margin="0,40,0,0"
+                                   Visibility="Visible"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

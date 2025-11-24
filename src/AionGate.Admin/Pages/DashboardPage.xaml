@@ -1,0 +1,169 @@
+<Page x:Class="AionGate.Admin.Pages.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.modernwpf.com/2019"
+      xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+      Title="仪表板">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 服务器状态卡片 -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 在线人数 -->
+                <Border Grid.Column="0" Style="{StaticResource StatCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="👥 在线人数" FontSize="14" Opacity="0.7" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="OnlineCountText" Text="0" FontSize="36" FontWeight="Bold"
+                                   Foreground="#4CAF50"/>
+                        <TextBlock x:Name="OnlineChangeText" Text="↑ +12 (5分钟内)" FontSize="12"
+                                   Foreground="#4CAF50" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- CPU使用率 -->
+                <Border Grid.Column="1" Style="{StaticResource StatCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🖥️ CPU 使用率" FontSize="14" Opacity="0.7" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="CpuUsageText" Text="0" FontSize="36" FontWeight="Bold"
+                                       Foreground="#2196F3"/>
+                            <TextBlock Text="%" FontSize="24" Foreground="#2196F3" Margin="4,8,0,0"/>
+                        </StackPanel>
+                        <ProgressBar x:Name="CpuProgressBar" Value="0" Maximum="100" Height="8"
+                                     Margin="0,8,0,0" Foreground="#2196F3"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 内存使用 -->
+                <Border Grid.Column="2" Style="{StaticResource StatCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="💾 内存使用" FontSize="14" Opacity="0.7" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="MemoryUsageText" Text="0 / 0 GB" FontSize="20" FontWeight="Bold"
+                                   Foreground="#FF9800"/>
+                        <ProgressBar x:Name="MemoryProgressBar" Value="0" Maximum="100" Height="8"
+                                     Margin="0,8,0,0" Foreground="#FF9800"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 今日收入 -->
+                <Border Grid.Column="3" Style="{StaticResource StatCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="💰 今日收入" FontSize="14" Opacity="0.7" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="TodayRevenueText" Text="0" FontSize="36" FontWeight="Bold"
+                                       Foreground="#9C27B0"/>
+                            <TextBlock Text="元" FontSize="18" Foreground="#9C27B0" Margin="4,12,0,0"/>
+                        </StackPanel>
+                        <TextBlock x:Name="RevenueChangeText" Text="↑ +15% 较昨日" FontSize="12"
+                                   Foreground="#4CAF50" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 快速操作区 -->
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="⚡ 快速操作" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                    <UniformGrid Columns="4" Rows="2">
+                        <Button Content="🚀 启动服务器" Style="{StaticResource ActionButtonStyle}"
+                                Background="#4CAF50" Foreground="White" Click="StartServer_Click"/>
+                        <Button Content="🛑 停止服务器" Style="{StaticResource ActionButtonStyle}"
+                                Background="#F44336" Foreground="White" Click="StopServer_Click"/>
+                        <Button Content="🔄 重启服务器" Style="{StaticResource ActionButtonStyle}"
+                                Background="#FF9800" Foreground="White" Click="RestartServer_Click"/>
+                        <Button Content="⚠️ 维护模式" Style="{StaticResource ActionButtonStyle}"
+                                Click="MaintenanceMode_Click"/>
+
+                        <Button Content="📢 发送公告" Style="{StaticResource ActionButtonStyle}"
+                                Click="SendAnnouncement_Click"/>
+                        <Button Content="🎁 发送道具" Style="{StaticResource ActionButtonStyle}"
+                                Click="SendItems_Click"/>
+                        <Button Content="💰 发送点券" Style="{StaticResource ActionButtonStyle}"
+                                Click="SendPoints_Click"/>
+                        <Button Content="🔨 踢出玩家" Style="{StaticResource ActionButtonStyle}"
+                                Background="#F44336" Foreground="White" Click="KickPlayer_Click"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- 图表区 -->
+            <Grid Grid.Row="2" Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 在线人数趋势 -->
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="📈 在线人数趋势（24小时）" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                        <lvc:CartesianChart x:Name="OnlineTrendChart" Height="300"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 热门商品 -->
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="🔥 热门商品" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                        <ListView x:Name="HotItemsList" Height="300" BorderThickness="0">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding Rank}" FontWeight="Bold"
+                                                   FontSize="16" Width="30" Foreground="#FF9800"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding SoldCount}" FontSize="14"
+                                                   Foreground="#666" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 实时日志 -->
+            <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="📋 实时日志" FontSize="16" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="清空" Click="ClearLogs_Click" Padding="8,4"/>
+                            <Button Content="暂停" x:Name="PauseLogsBtn" Click="PauseLogs_Click"
+                                    Padding="8,4" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Background="#1E1E1E" CornerRadius="4" Padding="12" Height="300">
+                        <ScrollViewer x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="LogTextBlock" FontFamily="Consolas" FontSize="12"
+                                       Foreground="#D4D4D4" TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Page>

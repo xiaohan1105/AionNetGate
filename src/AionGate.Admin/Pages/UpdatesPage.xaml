@@ -149,6 +149,87 @@
                 </Grid>
             </ui:TabItem>
 
+            <!-- 网盘链接管理 -->
+            <ui:TabItem Header="网盘链接">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 工具栏 -->
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                                <TextBlock Text="选择版本:" VerticalAlignment="Center" FontWeight="Bold"/>
+                                <ComboBox x:Name="CmbFullPackageVersion" Width="150" DisplayMemberPath="VersionCode" SelectionChanged="FullPackageVersion_Changed"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Content="➕ 添加下载链接" Style="{StaticResource AccentButtonStyle}" Click="AddFullPackageLink_Click"/>
+                                <Button Content="🔄 刷新" Click="RefreshFullPackageLinks_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- 网盘链接列表 -->
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 说明 -->
+                            <Border Grid.Row="0" Background="#E3F2FD" CornerRadius="4" Padding="12" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="💡 完整客户端通过网盘分发（降本增效）" FontWeight="Bold" Foreground="#1976D2" Margin="0,0,0,4"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="#424242" FontSize="12">
+                                        支持百度网盘、阿里云盘、迅雷云盘、115网盘、MEGA等。优先级≥90的链接将显示为"推荐"。
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 链接列表 -->
+                            <DataGrid Grid.Row="1" x:Name="FullPackageLinksDataGrid"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="Horizontal"
+                                      AlternatingRowBackground="#F5F5F5">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="包名称" Binding="{Binding PackageName}" Width="200"/>
+                                    <DataGridTextColumn Header="网盘类型" Binding="{Binding TypeName}" Width="100"/>
+                                    <DataGridTextColumn Header="文件大小" Binding="{Binding FileSizeText}" Width="100"/>
+                                    <DataGridTextColumn Header="提取码" Binding="{Binding VerificationCode}" Width="80"/>
+                                    <DataGridTextColumn Header="解压密码" Binding="{Binding ExtractionPassword}" Width="100"/>
+                                    <DataGridTextColumn Header="下载次数" Binding="{Binding DownloadCount}" Width="90"/>
+                                    <DataGridTextColumn Header="优先级" Binding="{Binding Priority}" Width="70"/>
+                                    <DataGridCheckBoxColumn Header="推荐" Binding="{Binding IsRecommended}" Width="60" IsReadOnly="True"/>
+                                    <DataGridCheckBoxColumn Header="启用" Binding="{Binding IsActive}" Width="60" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Header="操作" Width="150">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <Button Content="✏️" ToolTip="编辑" Width="32" Click="EditFullPackageLink_Click"/>
+                                                    <Button Content="📋" ToolTip="复制链接" Width="32" Click="CopyFullPackageLink_Click"/>
+                                                    <Button Content="🗑️" ToolTip="删除" Width="32" Click="DeleteFullPackageLink_Click"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </ui:TabItem>
+
             <!-- 增量更新 -->
             <ui:TabItem Header="增量更新">
                 <Grid>

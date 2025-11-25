@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AionGate.Core\AionGate.Core.csproj" />
     <ProjectReference Include="..\AionGate.Data\AionGate.Data.csproj" />
+    <ProjectReference Include="..\AionGate.Updater\AionGate.Updater.csproj" />
   </ItemGroup>
 
 </Project>

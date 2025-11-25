@@ -1,5 +1,6 @@
 using AionGate.Shop.Services;
 using AionGate.Shop.Repositories;
+using AionGate.Updater;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -78,6 +79,26 @@ builder.Services.AddScoped<IShopService, ShopService>();
 builder.Services.AddScoped<IShopRepository, ShopRepository>();
 builder.Services.AddScoped<IGameItemService, GameItemService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+
+// 热更新服务
+builder.Services.AddScoped<UpdateService>();
+builder.Services.AddScoped<UpdateRepository>();
+
+// CDN URL签名服务（使用配置中的CDN设置）
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    return new CDNUrlSigner(new CDNConfig
+    {
+        Provider = Enum.Parse<CDNProvider>(config["CDN:Provider"] ?? "AliOSS"),
+        BucketName = config["CDN:BucketName"] ?? "aion-updates",
+        AccessKey = config["CDN:AccessKey"] ?? "",
+        SecretKey = config["CDN:SecretKey"] ?? "",
+        Endpoint = config["CDN:Endpoint"] ?? "",
+        Region = config["CDN:Region"] ?? "cn-hangzhou",
+        Domain = config["CDN:Domain"] ?? ""
+    });
+});
 
 // 日志
 builder.Services.AddLogging(logging =>

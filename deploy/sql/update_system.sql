@@ -4,17 +4,42 @@
 -- 解决客户端大文件更新带宽问题
 -- 支持CDN加速、增量更新、断点续传、P2P分发
 
--- 版本管理表
+-- ===========================================
+-- 完整客户端下载链接表（网盘分发）
+-- ===========================================
+CREATE TABLE client_full_packages (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    version_code VARCHAR(32) NOT NULL,
+    package_name NVARCHAR(100) NOT NULL,  -- 如: Aion 2.7完整客户端
+    file_size BIGINT NOT NULL,  -- 文件大小（字节）
+    download_type VARCHAR(32) NOT NULL,  -- baidu|aliyun|thunder|115|mega|direct
+    download_url NVARCHAR(500) NOT NULL,  -- 下载链接
+    extraction_password NVARCHAR(50),  -- 解压密码
+    verification_code NVARCHAR(10),  -- 提取码
+    md5_hash VARCHAR(32),  -- MD5校验
+    description NVARCHAR(MAX),  -- 说明（安装步骤等）
+    download_count INT NOT NULL DEFAULT 0,  -- 下载次数
+    is_active BIT NOT NULL DEFAULT 1,  -- 是否有效
+    priority INT NOT NULL DEFAULT 50,  -- 优先级（推荐顺序）
+    created_at DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    updated_at DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+CREATE INDEX idx_client_packages_version ON client_full_packages(version_code, is_active);
+CREATE INDEX idx_client_packages_priority ON client_full_packages(priority DESC);
+
+-- 版本管理表（只管增量更新）
 CREATE TABLE update_versions (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
     version_code VARCHAR(32) NOT NULL UNIQUE,  -- 版本号 如: 2.7.0.15
     version_name NVARCHAR(100) NOT NULL,  -- 版本名称
-    version_type TINYINT NOT NULL DEFAULT 1,  -- 1=完整包 2=增量包 3=补丁包
-    base_version VARCHAR(32),  -- 基于哪个版本（增量包需要）
-    description NVARCHAR(MAX),  -- 更新说明
+    version_type TINYINT NOT NULL DEFAULT 2,  -- 2=增量包（默认） 3=补丁包 4=热修复
+    base_version VARCHAR(32),  -- 基于哪个版本
+    description NVARCHAR(MAX),  -- 更新说明（详细更新内容）
+    changelog NVARCHAR(MAX),  -- 更新日志（用户可见）
     file_count INT NOT NULL DEFAULT 0,  -- 文件数量
     total_size BIGINT NOT NULL DEFAULT 0,  -- 总大小（字节）
-    download_size BIGINT NOT NULL DEFAULT 0,  -- 下载大小（压缩后）
+    download_size BIGINT NOT NULL DEFAULT 0,  -- 实际下载大小（压缩后）
     is_forced BIT NOT NULL DEFAULT 0,  -- 是否强制更新
     is_published BIT NOT NULL DEFAULT 0,  -- 是否已发布
     min_client_version VARCHAR(32),  -- 最低客户端版本要求
@@ -23,6 +48,7 @@ CREATE TABLE update_versions (
     cdn_region VARCHAR(50),  -- CDN区域
     manifest_url NVARCHAR(500),  -- 清单文件URL
     manifest_hash VARCHAR(64),  -- 清单文件Hash
+    estimated_time INT,  -- 预计更新时间（秒）
     published_at DATETIME,
     created_at DATETIME NOT NULL DEFAULT GETUTCDATE(),
     updated_at DATETIME NOT NULL DEFAULT GETUTCDATE()
@@ -461,12 +487,245 @@ BEGIN
 END
 GO
 
+-- ===========================================
+-- 存储过程: 检查更新（返回更新信息和网盘链接）
+-- ===========================================
+CREATE OR ALTER PROCEDURE sp_CheckForUpdate
+    @ClientVersion VARCHAR(32),
+    @ChannelCode VARCHAR(32) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @LatestVersionCode VARCHAR(32);
+    DECLARE @LatestVersionID BIGINT;
+    DECLARE @NeedsUpdate BIT = 0;
+    DECLARE @NeedsFullClient BIT = 0;
+
+    -- 获取最新版本
+    SELECT TOP 1
+        @LatestVersionCode = version_code,
+        @LatestVersionID = id
+    FROM update_versions
+    WHERE is_published = 1
+    ORDER BY published_at DESC, id DESC;
+
+    -- 判断是否需要更新
+    IF @LatestVersionCode > @ClientVersion
+        SET @NeedsUpdate = 1;
+
+    -- 判断是否需要完整客户端（版本相差太大或没有增量包）
+    IF @ClientVersion IS NULL OR @ClientVersion = '' OR @ClientVersion = '0.0.0.0'
+        SET @NeedsFullClient = 1;
+
+    -- 返回更新检查结果
+    SELECT
+        @NeedsUpdate AS needs_update,
+        @NeedsFullClient AS needs_full_client,
+        @ClientVersion AS current_version,
+        @LatestVersionCode AS latest_version,
+        v.version_type,
+        CASE v.version_type WHEN 2 THEN 'incremental' WHEN 3 THEN 'patch' WHEN 4 THEN 'hotfix' ELSE 'full' END AS update_type,
+        v.is_forced,
+        v.file_count,
+        v.download_size,
+        CASE
+            WHEN v.download_size >= 1073741824 THEN CAST(v.download_size / 1073741824.0 AS DECIMAL(10,2)) + ' GB'
+            WHEN v.download_size >= 1048576 THEN CAST(v.download_size / 1048576.0 AS DECIMAL(10,2)) + ' MB'
+            WHEN v.download_size >= 1024 THEN CAST(v.download_size / 1024.0 AS DECIMAL(10,2)) + ' KB'
+            ELSE CAST(v.download_size AS VARCHAR) + ' B'
+        END AS download_size_text,
+        v.estimated_time,
+        v.changelog
+    FROM update_versions v
+    WHERE v.id = @LatestVersionID;
+
+    -- 如果需要完整客户端，返回网盘下载链接
+    IF @NeedsFullClient = 1
+    BEGIN
+        SELECT
+            id,
+            version_code,
+            package_name,
+            download_type,
+            download_type AS type,
+            CASE download_type
+                WHEN 'baidu' THEN N'百度网盘'
+                WHEN 'aliyun' THEN N'阿里云盘'
+                WHEN 'thunder' THEN N'迅雷云盘'
+                WHEN '115' THEN N'115网盘'
+                WHEN 'mega' THEN N'MEGA网盘'
+                WHEN 'direct' THEN N'直链下载'
+                ELSE N'其他'
+            END AS type_name,
+            download_url AS url,
+            verification_code,
+            extraction_password,
+            file_size,
+            CASE
+                WHEN file_size >= 1073741824 THEN CAST(file_size / 1073741824.0 AS DECIMAL(10,2)) + ' GB'
+                WHEN file_size >= 1048576 THEN CAST(file_size / 1048576.0 AS DECIMAL(10,2)) + ' MB'
+                ELSE CAST(file_size / 1024.0 AS DECIMAL(10,2)) + ' KB'
+            END AS file_size_text,
+            description,
+            priority,
+            CASE WHEN priority >= 90 THEN 1 ELSE 0 END AS is_recommended
+        FROM client_full_packages
+        WHERE version_code = @LatestVersionCode
+            AND is_active = 1
+        ORDER BY priority DESC, id DESC;
+    END
+END
+GO
+
+-- ===========================================
+-- 存储过程: 添加/更新完整客户端下载链接
+-- ===========================================
+CREATE OR ALTER PROCEDURE sp_UpsertFullPackageLink
+    @ID BIGINT = NULL,
+    @VersionCode VARCHAR(32),
+    @PackageName NVARCHAR(100),
+    @FileSize BIGINT,
+    @DownloadType VARCHAR(32),
+    @DownloadUrl NVARCHAR(500),
+    @VerificationCode NVARCHAR(10) = NULL,
+    @ExtractionPassword NVARCHAR(50) = NULL,
+    @MD5Hash VARCHAR(32) = NULL,
+    @Description NVARCHAR(MAX) = NULL,
+    @Priority INT = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @ID IS NOT NULL AND EXISTS (SELECT 1 FROM client_full_packages WHERE id = @ID)
+    BEGIN
+        -- 更新
+        UPDATE client_full_packages
+        SET
+            version_code = @VersionCode,
+            package_name = @PackageName,
+            file_size = @FileSize,
+            download_type = @DownloadType,
+            download_url = @DownloadUrl,
+            verification_code = @VerificationCode,
+            extraction_password = @ExtractionPassword,
+            md5_hash = @MD5Hash,
+            description = @Description,
+            priority = @Priority,
+            updated_at = GETUTCDATE()
+        WHERE id = @ID;
+
+        SELECT @ID AS id;
+    END
+    ELSE
+    BEGIN
+        -- 新增
+        INSERT INTO client_full_packages (
+            version_code, package_name, file_size, download_type,
+            download_url, verification_code, extraction_password,
+            md5_hash, description, priority
+        )
+        VALUES (
+            @VersionCode, @PackageName, @FileSize, @DownloadType,
+            @DownloadUrl, @VerificationCode, @ExtractionPassword,
+            @MD5Hash, @Description, @Priority
+        );
+
+        SELECT SCOPE_IDENTITY() AS id;
+    END
+END
+GO
+
+-- ===========================================
+-- 存储过程: 删除完整客户端下载链接
+-- ===========================================
+CREATE OR ALTER PROCEDURE sp_DeleteFullPackageLink
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM client_full_packages WHERE id = @ID;
+
+    SELECT @@ROWCOUNT AS affected_rows;
+END
+GO
+
+-- ===========================================
+-- 存储过程: 获取完整客户端下载链接列表
+-- ===========================================
+CREATE OR ALTER PROCEDURE sp_GetFullPackageLinks
+    @VersionCode VARCHAR(32) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.id,
+        p.version_code,
+        p.package_name,
+        p.file_size,
+        CASE
+            WHEN p.file_size >= 1073741824 THEN CAST(p.file_size / 1073741824.0 AS DECIMAL(10,2)) + ' GB'
+            WHEN p.file_size >= 1048576 THEN CAST(p.file_size / 1048576.0 AS DECIMAL(10,2)) + ' MB'
+            ELSE CAST(p.file_size / 1024.0 AS DECIMAL(10,2)) + ' KB'
+        END AS file_size_text,
+        p.download_type,
+        CASE p.download_type
+            WHEN 'baidu' THEN N'百度网盘'
+            WHEN 'aliyun' THEN N'阿里云盘'
+            WHEN 'thunder' THEN N'迅雷云盘'
+            WHEN '115' THEN N'115网盘'
+            WHEN 'mega' THEN N'MEGA网盘'
+            WHEN 'direct' THEN N'直链下载'
+            ELSE N'其他'
+        END AS type_name,
+        p.download_url,
+        p.verification_code,
+        p.extraction_password,
+        p.md5_hash,
+        p.description,
+        p.download_count,
+        p.is_active,
+        p.priority,
+        CASE WHEN p.priority >= 90 THEN 1 ELSE 0 END AS is_recommended,
+        p.created_at,
+        p.updated_at
+    FROM client_full_packages p
+    WHERE (@VersionCode IS NULL OR p.version_code = @VersionCode)
+    ORDER BY p.version_code DESC, p.priority DESC, p.created_at DESC;
+END
+GO
+
+-- ===========================================
+-- 存储过程: 记录下载次数
+-- ===========================================
+CREATE OR ALTER PROCEDURE sp_IncrementDownloadCount
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE client_full_packages
+    SET download_count = download_count + 1,
+        updated_at = GETUTCDATE()
+    WHERE id = @ID;
+END
+GO
+
 -- 插入示例CDN节点
 INSERT INTO cdn_nodes (node_name, provider, region, endpoint, bucket_name, cdn_domain, is_enabled, priority)
 VALUES
     (N'阿里云OSS-华东', 'oss', 'cn-hangzhou', 'oss-cn-hangzhou.aliyuncs.com', 'aion-updates', 'cdn.yourdomain.com', 1, 100),
     (N'腾讯云COS-华北', 'cos', 'ap-beijing', 'cos.ap-beijing.myqcloud.com', 'aion-updates', 'cdn2.yourdomain.com', 1, 90),
     (N'Cloudflare R2', 'r2', 'auto', 'r2.cloudflarestorage.com', 'aion-updates', 'r2.yourdomain.com', 1, 80);
+
+-- 插入示例完整客户端下载链接
+INSERT INTO client_full_packages (version_code, package_name, file_size, download_type, download_url, verification_code, extraction_password, priority, description)
+VALUES
+    ('2.7.0.15', N'Aion 2.7 完整客户端 (百度网盘)', 15728640000, 'baidu', 'https://pan.baidu.com/s/xxxxxx', 'abc123', 'aion2024', 100, N'推荐下载。解压后运行登录器即可。'),
+    ('2.7.0.15', N'Aion 2.7 完整客户端 (阿里云盘)', 15728640000, 'aliyun', 'https://www.aliyundrive.com/s/xxxxxx', 'xyz789', 'aion2024', 95, N'下载速度快，推荐。'),
+    ('2.7.0.15', N'Aion 2.7 完整客户端 (迅雷云盘)', 15728640000, 'thunder', 'https://pan.xunlei.com/s/xxxxxx', NULL, 'aion2024', 80, N'支持迅雷加速下载。');
 
 PRINT '热更新系统初始化完成！';
 GO

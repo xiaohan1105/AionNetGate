@@ -110,41 +110,60 @@ namespace AionNetGate.Services
             if (!_isRun)
                 return;
 
-            _svrSock.Close();
-
             _isRun = false;
+
+            try
+            {
+                if (_svrSock != null)
+                {
+                    _svrSock.Close();
+                    _svrSock = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.error("关闭文件服务器Socket时发生错误: " + ex.Message);
+            }
         }
 
-        /// <summary> 
-        /// 客户端连接处理函数 
-        /// </summary> 
-        /// <param name="iar">欲建立服务器连接的Socket对象</param> 
+        /// <summary>
+        /// 客户端连接处理函数
+        /// </summary>
+        /// <param name="iar">欲建立服务器连接的Socket对象</param>
         private void AcceptConn(IAsyncResult iar)
         {
-            //如果服务器停止了服务,就不能再接收新的客户端 
+            //如果服务器停止了服务,就不能再接收新的客户端
             if (!_isRun)
             {
                 return;
             }
             try
             {
-                //继续接受客户端 
-                _svrSock.BeginAccept(new AsyncCallback(AcceptConn), _svrSock);
+                //继续接受客户端
+                if (_svrSock != null)
+                    _svrSock.BeginAccept(new AsyncCallback(AcceptConn), _svrSock);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Socket已被关闭，忽略此异常
+                return;
             }
             catch (Exception e)
             {
-                throw e;
+                log.error("继续接受客户端连接时发生错误: " + e.Message);
+                return;
             }
 
-            //接受一个客户端的连接请求 
+            //接受一个客户端的连接请求
             Socket oldserver = (Socket)iar.AsyncState;
+            Socket newSocket = null;
             try
             {
-                Socket newSocket = oldserver.EndAccept(iar);
-                if (newSocket.Connected)
+                newSocket = oldserver.EndAccept(iar);
+                if (newSocket != null && newSocket.Connected)
                 {
                     log.info("文件服务已收到一个请求[{0}]", newSocket.RemoteEndPoint.ToString());
-                    using (NetworkStream ns = new NetworkStream(newSocket))
+                    using (NetworkStream ns = new NetworkStream(newSocket, false)) // false表示不拥有Socket
                     {
                         if (ns.CanRead)
                         {
@@ -174,15 +193,35 @@ namespace AionNetGate.Services
                                 UploadFolder(ns, lv, lvi);
                             }
                         }
-                        ns.Close();
+                        // ns.Close() 由using自动调用
                     }
-                    newSocket.Shutdown(SocketShutdown.Receive);
-                    newSocket.Close();
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Socket已被关闭，忽略
             }
             catch (Exception e)
             {
-                MessageBox.Show("强制断开：" + e.Message);
+                log.error("处理文件请求时发生错误: " + e.Message);
+            }
+            finally
+            {
+                // 确保Socket被正确关闭
+                if (newSocket != null)
+                {
+                    try
+                    {
+                        if (newSocket.Connected)
+                            newSocket.Shutdown(SocketShutdown.Both);
+                    }
+                    catch { }
+                    try
+                    {
+                        newSocket.Close();
+                    }
+                    catch { }
+                }
             }
         }
         /// <summary>

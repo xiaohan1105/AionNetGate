@@ -1,6 +1,5 @@
-﻿using AionCommons.LogEngine;
+using AionCommons.LogEngine;
 using AionNetGate.Configs;
-using AionNetGate.Netwok;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
@@ -12,519 +11,593 @@ using System.Threading;
 
 namespace AionNetGate.Services
 {
+    /// <summary>
+    /// 账号服务 - 重构版
+    /// 修复：SQL注入漏洞、连接池管理、异常处理
+    /// </summary>
     class AccountService
     {
         internal static AccountService Instance = new AccountService();
 
-        private static readonly Logger Logger = LoggerFactory.getLogger(); // Loggerger instance.
+        private static readonly Logger Logger = LoggerFactory.getLogger();
 
-        private static readonly string CHECK_ACCOUNT   = "SELECT * FROM account_data WHERE `name` = @name";
-        private static readonly string ADD_EMAIL       = "ALTER TABLE `account_data`  ADD COLUMN `email` varchar(50) DEFAULT NULL AFTER `last_mac`";
-        private static readonly string REG_ACCOUNT     = "INSERT INTO account_data(`name`, `password`,`email`) VALUES (@name, @password, @email)";
-        private static readonly string CHANGE_PASSWORD = "UPDATE account_data SET `password` = @newPsw WHERE `name` = @name and `password` = @oldPsw";
-        private static readonly string FIND_PASSWORD   = "UPDATE account_data SET `password` = @password WHERE `name` = @name and `email` = @email";
+        // 参数化SQL语句 - 防止SQL注入
+        private static readonly string MYSQL_CHECK_ACCOUNT = "SELECT * FROM account_data WHERE `name` = @name";
+        private static readonly string MYSQL_ADD_EMAIL = "ALTER TABLE `account_data` ADD COLUMN `email` varchar(50) DEFAULT NULL AFTER `last_mac`";
+        private static readonly string MYSQL_REG_ACCOUNT = "INSERT INTO account_data(`name`, `password`,`email`) VALUES (@name, @password, @email)";
+        private static readonly string MYSQL_CHANGE_PASSWORD = "UPDATE account_data SET `password` = @newPsw WHERE `name` = @name and `password` = @oldPsw";
+        private static readonly string MYSQL_FIND_PASSWORD = "UPDATE account_data SET `password` = @password WHERE `name` = @name and `email` = @email";
 
-        private MySqlConnection con;
-        private SqlConnection mscon;
-        private SqlConnection gameCon;
+        // MSSQL 参数化SQL语句
+        private static readonly string MSSQL_CHECK_ACCOUNT_NEW = "SELECT name FROM [dbo].[account_data] WHERE [name] = @name AND [password] = @password";
+        private static readonly string MSSQL_CHECK_ACCOUNT_OLD = "SELECT account FROM [dbo].[user_auth] WHERE [account] = @name AND [password] = @password";
+        private static readonly string MSSQL_REG_ACCOUNT_NEW = "INSERT INTO [dbo].[account_data]([name],[password],[email]) VALUES(@name, @password, @email)";
+        private static readonly string MSSQL_CHECK_EXISTS_NEW = "SELECT COUNT(id) FROM [dbo].[account_data] WHERE [name] = @name";
+        private static readonly string MSSQL_CHANGE_PASSWORD_NEW = "UPDATE [dbo].[account_data] SET [password] = @newPsw WHERE [name] = @name AND [password] = @oldPsw";
+        private static readonly string MSSQL_CHANGE_PASSWORD_OLD = "UPDATE [dbo].[user_auth] SET [password] = @newPsw WHERE [account] = @name AND [password] = @oldPsw";
+        private static readonly string MSSQL_FIND_PASSWORD_NEW = "UPDATE [dbo].[account_data] SET [password] = @password WHERE [name] = @name AND [email] = @email";
+        private static readonly string MSSQL_FIND_PASSWORD_OLD = "UPDATE [dbo].[user_auth] SET [password] = @password WHERE [account] = @name AND [email] = @email";
+        private static readonly string MSSQL_GET_ACCOUNT_INFO_NEW = "SELECT * FROM [dbo].[account_data] WHERE [name] = @name";
+        private static readonly string MSSQL_GET_ACCOUNT_INFO_OLD = "SELECT * FROM [dbo].[user_auth] WHERE [account] = @name";
+
+        // 账号名验证正则
+        private static readonly Regex AccountNameRegex = new Regex(@"^[a-zA-Z0-9]{4,16}$");
 
         internal AccountService()
         {
-            con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_ls));
-            mscon = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_ls));
-            gameCon = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_gs));
+            // 不再创建全局连接，每次操作使用新连接（连接池管理）
         }
+
+        #region 公共接口
+
         /// <summary>
         /// 测试连接数据库是否成功
         /// </summary>
-        /// <returns></returns>
         internal bool ConnectionTest(string connectString, out string msg)
         {
-            return Config.isMysql ? connectionTest(connectString, out msg) : connectionTestMSSQL(connectString, out msg);
+            return Config.isMysql ? ConnectionTestMySQL(connectString, out msg) : ConnectionTestMSSQL(connectString, out msg);
         }
 
         /// <summary>
         /// 账号注册
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="password"></param>
-        /// <param name="email"></param>
-        /// <param name="message"></param>
-        /// <returns></returns>
         internal bool RegAccount(string name, string password, string email, out string message)
         {
+            // 输入验证
+            if (!ValidateAccountName(name, out message))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(password) || password.Length < 4 || password.Length > 16)
+            {
+                message = "密码长度应为4-16位";
+                return false;
+            }
+
             return Config.isMysql ? RegAccountMySQL(name, password, email, out message) : RegAccountMSSQL(name, password, email, out message);
         }
 
         /// <summary>
         /// 登录器上验证账号和密码
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="psw"></param>
-        /// <returns></returns>
         internal bool CheckAccountAndPassword(string name, string psw)
         {
-            return Config.isMysql ? CheckAccountPswMysql(name, psw) : CheckAccountPswMssql(name, psw);
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(psw))
+            {
+                return false;
+            }
+
+            return Config.isMysql ? CheckAccountPswMySQL(name, psw) : CheckAccountPswMSSQL(name, psw);
         }
 
         /// <summary>
         /// 修改密码
         /// </summary>
-        /// <param name="con"></param>
-        /// <param name="name"></param>
-        /// <param name="oldPsw"></param>
-        /// <param name="newPsw"></param>
-        /// <param name="message"></param>
-        /// <returns></returns>
         internal bool ChangePassword(string name, string oldPsw, string newPsw, out string message)
         {
-            return Config.isMysql ? ChangePasswordMysql(name, oldPsw, newPsw, out message) : ChangePasswordMssql(name, oldPsw, newPsw, out message);
+            if (string.IsNullOrEmpty(newPsw) || newPsw.Length < 4 || newPsw.Length > 16)
+            {
+                message = "新密码长度应为4-16位";
+                return false;
+            }
+
+            return Config.isMysql ? ChangePasswordMySQL(name, oldPsw, newPsw, out message) : ChangePasswordMSSQL(name, oldPsw, newPsw, out message);
         }
 
         /// <summary>
         /// 找回密码（重置密码）
         /// </summary>
-        /// <param name="name">用户名</param>
-        /// <param name="email">邮箱</param>
-        /// <param name="psw">新密码</param>
-        /// <param name="message">信息</param>
-        /// <returns></returns>
         internal bool FindPassword(string name, string email, out string psw, out string message)
         {
-            return Config.isMysql ? FindPasswordMysql(name, email, out psw, out message) : FindPasswordMssql(name, email, out psw, out message);
+            return Config.isMysql ? FindPasswordMySQL(name, email, out psw, out message) : FindPasswordMSSQL(name, email, out psw, out message);
         }
 
-
-
-        #region 测试数据库连接是否正常
-        private static bool connectionTestMSSQL(string connectString, out string msg)
-        {
-            msg = "数据库连接失败:";
-            SqlConnection conn = new SqlConnection(connectString);
-            bool isCorrect = false;
-            try
-            {
-                conn.Open();  //打开数据库  
-                msg = "数据库连接成功,当前版本:" + conn.ServerVersion;
-                isCorrect = true;
-            }
-            catch
-            {
-
-            }
-            finally
-            {
-                if (conn.State == ConnectionState.Open)
-                {
-                    conn.Close();    //关闭数据库  
-                }
-            }
-            return isCorrect;
-        }
-        private static bool connectionTest(string connectString, out string msg)
-        {
-            msg = "数据库连接失败:";
-            bool isCorrect = false;
-            MySqlConnection con = new MySqlConnection();
-            con.ConnectionString = connectString;
-            try
-            {
-                con.Open();
-                msg = "数据库连接成功,当前版本:" + con.ServerVersion;
-                isCorrect = true;
-            }
-            catch (Exception ex)
-            {
-                msg += ex.Message;
-            }
-            finally
-            {
-                con.Close();
-            }
-            return isCorrect;
-        }
         #endregion
 
-        #region 账号注册
-        private bool RegAccountMySQL(string name, string password, string email, out string message) 
-        { 
-            MySqlCommand cmd = new MySqlCommand(ADD_EMAIL, con);
-            try
-            {
-                con.Open();
-                cmd.ExecuteNonQuery();
-            }
-            catch (Exception)
-            {
-
-            }
-            finally
-            {
-                cmd.Dispose();
-            }
-
-            message = "账号[" + name + "]注册成功";
-            int result = 0;
-            cmd = new MySqlCommand(REG_ACCOUNT, con);
-            MySqlParameterCollection st = cmd.Parameters;
-            try
-            {
-                st.AddWithValue("@name", name);
-                st.AddWithValue("@password", EncodeBySHA1(password));
-                st.AddWithValue("@email", email);
-                result = cmd.ExecuteNonQuery();
-            }
-            catch (Exception e)
-            {
-                message = "注册失败：" + (e.Message.StartsWith("Duplicate entry") ? "账户[" + name + "]已存在" : e.Message);
-            }
-            finally
-            {
-                cmd.Dispose();
-                con.Close();
-            }
-            bool success = result > 0;
-            if (success)
-            {
-                Logger.info("玩家成功注册了新账号[{0}]", name);
-            }
-
-            return success;
-        }
+        #region 输入验证
 
         /// <summary>
-        /// MSSQL账号注册
+        /// 验证账号名格式
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="password"></param>
-        /// <param name="email"></param>
-        /// <param name="message"></param>
-        /// <returns></returns>
-        private bool RegAccountMSSQL(string name, string password, string email, out string message)
+        private bool ValidateAccountName(string name, out string message)
         {
-            Regex PwdRegex = new Regex(@"^[\x20-\xFF]{4,16}$");
-            if (!PwdRegex.IsMatch(name))
+            message = "";
+
+            if (string.IsNullOrEmpty(name))
+            {
+                message = "账号名不能为空";
+                return false;
+            }
+
+            if (!AccountNameRegex.IsMatch(name))
             {
                 message = "账号只能是4至16位的字母和数字";
                 return false;
             }
-            string psw = EncodePasswordHash(password);
 
-            message = "账号[" + name + "]注册成功";
+            return true;
+        }
 
-            string sql = string.Format("if not exists(select * from syscolumns where id=object_id('dbo.user_auth') and name='email') " +
-                "BEGIN " +
-                "   ALTER TABLE[dbo].[user_auth] ADD[email] varchar(50) DEFAULT NULL; " +
-                "END " +
-                "   INSERT INTO [dbo].[user_account]([account]) VALUES ('{0}');", name);
+        #endregion
 
-            SqlCommand cmd = new SqlCommand(sql, mscon);
-            int result = 0;
+        #region 数据库连接测试
+
+        private bool ConnectionTestMSSQL(string connectString, out string msg)
+        {
+            msg = "数据库连接失败";
             try
             {
-                mscon.Open();
-
-
-                //新的4.6数据库结构，镜子的那份
-                if (Config.newaccountdatabase)
+                using (SqlConnection conn = new SqlConnection(connectString))
                 {
-                    sql = string.Format("SELECT count(id) FROM [dbo].[account_data] WHERE [dbo].[account_data].name = '{0}';", name);
-                    cmd = new SqlCommand(sql, mscon);
-                    result = Convert.ToInt32(cmd.ExecuteScalar());
-                    if (result == 0)
-                    {
-                        sql = string.Format("INSERT INTO [dbo].[account_data]([name],[password],[email])VALUES('{0}', '{1}', '{2}'); ", name, psw.Substring(2), email);
+                    conn.Open();
+                    msg = "数据库连接成功,当前版本:" + conn.ServerVersion;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                msg = "数据库连接失败: " + ex.Message;
+                Logger.error("MSSQL连接测试失败: {0}", ex.Message);
+                return false;
+            }
+        }
 
-                        cmd = new SqlCommand(sql, mscon);
-                        result = cmd.ExecuteNonQuery();
-                    }
-                    else
+        private bool ConnectionTestMySQL(string connectString, out string msg)
+        {
+            msg = "数据库连接失败";
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(connectString))
+                {
+                    conn.Open();
+                    msg = "数据库连接成功,当前版本:" + conn.ServerVersion;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                msg = "数据库连接失败: " + ex.Message;
+                Logger.error("MySQL连接测试失败: {0}", ex.Message);
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region MySQL 账号操作
+
+        private bool RegAccountMySQL(string name, string password, string email, out string message)
+        {
+            message = "账号[" + name + "]注册成功";
+
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    // 尝试添加email列（如果不存在）
+                    try
                     {
-                        result = -1;
-                        message = "账号[" + name + "]已经被人注册掉了";
+                        using (MySqlCommand cmdAlter = new MySqlCommand(MYSQL_ADD_EMAIL, con))
+                        {
+                            cmdAlter.ExecuteNonQuery();
+                        }
                     }
+                    catch (MySqlException)
+                    {
+                        // 列已存在，忽略错误
+                    }
+
+                    // 执行注册
+                    using (MySqlCommand cmd = new MySqlCommand(MYSQL_REG_ACCOUNT, con))
+                    {
+                        cmd.Parameters.AddWithValue("@name", name);
+                        cmd.Parameters.AddWithValue("@password", EncodeBySHA1(password));
+                        cmd.Parameters.AddWithValue("@email", email ?? "");
+
+                        int result = cmd.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            Logger.info("玩家成功注册了新账号[{0}]", name);
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (MySqlException ex)
+            {
+                if (ex.Message.Contains("Duplicate entry"))
+                {
+                    message = "账户[" + name + "]已存在";
                 }
                 else
                 {
-                    if (cmd.ExecuteNonQuery() > 0)
+                    message = "注册失败：" + ex.Message;
+                }
+                Logger.error("MySQL注册账号失败: {0}", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                message = "注册失败：系统错误";
+                Logger.error("MySQL注册账号异常: {0}", ex.Message);
+            }
+
+            return false;
+        }
+
+        private bool CheckAccountPswMySQL(string name, string psw)
+        {
+            try
+            {
+                using (MySqlConnection con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    using (MySqlCommand cmd = new MySqlCommand(MYSQL_CHECK_ACCOUNT, con))
                     {
-                        sql = string.Format("INSERT INTO [dbo].[user_auth] ([account], [password], [quiz1], [quiz2], [answer1], [answer2], [new_pwd_flag], [lastat],[email])VALUES('{0}',{1}, '1', '2', 0, 0, 0, NULL,'{2}'); ", name, psw, email);
-                        cmd = new SqlCommand(sql, mscon);
-                        result = cmd.ExecuteNonQuery();
+                        cmd.Parameters.AddWithValue("@name", name);
+
+                        using (MySqlDataReader rs = cmd.ExecuteReader())
+                        {
+                            if (rs.Read())
+                            {
+                                string storedPassword = rs.GetString("password");
+                                return storedPassword.Equals(EncodeBySHA1(psw));
+                            }
+                        }
                     }
                 }
-
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                message = "注册失败：" + (e.Message.Contains("重复键") ? "账户[" + name + "]已存在" : e.Message);
-            }
-            finally
-            {
-                cmd.Dispose();
-                mscon.Close();
+                Logger.error("MySQL验证账号[{0}]密码失败: {1}", name, ex.Message);
             }
 
-            bool success = result > 0;
-            if (success)
-            {
-                Logger.info("玩家成功注册了新账号[{0}]", name);
-            }
-            return success;
+            return false;
         }
 
+        private bool ChangePasswordMySQL(string name, string oldPsw, string newPsw, out string message)
+        {
+            message = "密码修改失败，可能原密码不对！";
 
-
-        #endregion
-
-        #region 验证账号密码
-        private bool CheckAccountPswMysql(string name, string psw) 
-        { 
-            bool isCorrect = false;
-            MySqlCommand cmd = new MySqlCommand(CHECK_ACCOUNT, con);
-            cmd.Parameters.Add("@name", MySqlDbType.String).Value = name;
             try
             {
-                con.Open();
-                MySqlDataReader rs = cmd.ExecuteReader();
-                if (rs.Read())
+                using (MySqlConnection con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_ls)))
                 {
-                    isCorrect = rs.GetString("password").Equals(EncodeBySHA1(psw));
+                    con.Open();
+
+                    using (MySqlCommand cmd = new MySqlCommand(MYSQL_CHANGE_PASSWORD, con))
+                    {
+                        cmd.Parameters.AddWithValue("@newPsw", EncodeBySHA1(newPsw));
+                        cmd.Parameters.AddWithValue("@name", name);
+                        cmd.Parameters.AddWithValue("@oldPsw", EncodeBySHA1(oldPsw));
+
+                        int result = cmd.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            message = "账号[" + name + "]的密码已成功修改";
+                            Logger.info("玩家成功修改了账号[{0}]的密码", name);
+                            return true;
+                        }
+                    }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.error("验证账号[{0}]和密码[{1}]遇到问题: ", name, psw, e.Message);
-            }
-            finally
-            {
-                cmd.Dispose();
-                con.Close();
-            }
-            return isCorrect;
-        }
-        private bool CheckAccountPswMssql(string name, string psw)
-        {
-            bool isCorrect = false;
-            string sql;
-
-            // 支持新的4.6数据库结构和传统结构
-            if (Config.newaccountdatabase)
-            {
-                sql = string.Format("SELECT name FROM [dbo].[account_data] WHERE [name] = '{0}' and [password] = '{1}'", name, EncodePasswordHash(psw).Substring(2));
-            }
-            else
-            {
-                sql = string.Format("SELECT account FROM [dbo].[user_auth] WHERE [account] = '{0}' and password={1}", name, EncodePasswordHash(psw));
+                Logger.error("MySQL修改密码失败: {0}", ex.Message);
             }
 
-            SqlCommand cmd = new SqlCommand(sql, mscon);
-            try
-            {
-                mscon.Open();
-                string result = cmd.ExecuteScalar() as string;
-                isCorrect = result == name;
-            }
-            catch (SqlException e)
-            {
-                Logger.error("验证账号[{0}]和密码[{1}]遇到问题:{2} ", name, psw, e.Message);
-            }
-            finally
-            {
-                cmd.Dispose();
-                mscon.Close();
-            }
-            return isCorrect;
-        }
-        #endregion
-
-        #region 修改密码
-        private bool ChangePasswordMysql(string name, string oldPsw, string newPsw ,out string message)
-        {
-            message = "密码修改失败，可能原密码不对！";
-            int result = 0;
-            MySqlCommand cmd = new MySqlCommand(CHANGE_PASSWORD, con);
-            MySqlParameterCollection st = cmd.Parameters;
-            try
-            {
-                con.Open();
-                st.AddWithValue("@newPsw", EncodeBySHA1(newPsw));
-                st.AddWithValue("@name", name);
-                st.AddWithValue("@oldPsw", EncodeBySHA1(oldPsw));
-                result = cmd.ExecuteNonQuery();
-            }
-            catch (SqlException e)
-            {
-                Logger.error("玩家修改密码遇到了问题",e.Message);
-            }
-            finally
-            {
-                cmd.Dispose();
-                con.Close();
-            }
-            bool success = result > 0;
-            if (success)
-            {
-                message = "账号[" + name + "]的密码已成功修改为[" + newPsw + "]";
-                Logger.info("玩家成功修改了账号[{0}]的密码", name);
-            }
-            return success;
+            return false;
         }
 
-        private bool ChangePasswordMssql(string name, string oldPsw, string newPsw, out string message)
-        {
-            message = "密码修改失败，可能原密码不对！";
-            int result = -1;
-            string sql;
-
-            // 支持新的4.6数据库结构和传统结构
-            if (Config.newaccountdatabase)
-            {
-                sql = string.Format("UPDATE [dbo].[account_data] SET [password] = '{0}' WHERE [name] = '{1}' and [password] = '{2}'",
-                    EncodePasswordHash(newPsw).Substring(2), name, EncodePasswordHash(oldPsw).Substring(2));
-            }
-            else
-            {
-                sql = string.Format("UPDATE [dbo].[user_auth] SET [password] = {0} WHERE [account] = '{1}' and [password] = {2}",
-                    EncodePasswordHash(newPsw), name, EncodePasswordHash(oldPsw));
-            }
-
-            SqlCommand cmd = new SqlCommand(sql, mscon);
-            try
-            {
-                mscon.Open();
-                result = cmd.ExecuteNonQuery();
-            }
-            catch (SqlException e)
-            {
-                Logger.error("玩家修改密码遇到了问题", e.Message);
-            }
-            finally
-            {
-                cmd.Dispose();
-                mscon.Close();
-            }
-            bool success = result > 0;
-            if (success)
-            {
-                message = "账号[" + name + "]的密码已成功修改为[" + newPsw + "]";
-                Logger.info("玩家成功修改了账号[{0}]的密码", name);
-            }
-            return success;
-        }
-        #endregion
-
-        #region 找回密码
-        private bool FindPasswordMysql(string name,string email,out string psw,out string message)
+        private bool FindPasswordMySQL(string name, string email, out string psw, out string message)
         {
             psw = null;
             message = "密码找回失败，账号或者邮箱不存在！";
 
-            Random rnd = new Random();
-            int newPsw = rnd.Next(10000, 1000000);
-            int result = 0;
-            MySqlCommand cmd = new MySqlCommand(FIND_PASSWORD, con);
-            MySqlParameterCollection st = cmd.Parameters;
             try
             {
-                con.Open();
-                st.AddWithValue("@password", EncodeBySHA1(newPsw.ToString()));
-                st.AddWithValue("@name", name);
-                st.AddWithValue("@email", email);
-                result = cmd.ExecuteNonQuery();
+                Random rnd = new Random();
+                string newPsw = rnd.Next(100000, 999999).ToString();
+
+                using (MySqlConnection con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    using (MySqlCommand cmd = new MySqlCommand(MYSQL_FIND_PASSWORD, con))
+                    {
+                        cmd.Parameters.AddWithValue("@password", EncodeBySHA1(newPsw));
+                        cmd.Parameters.AddWithValue("@name", name);
+                        cmd.Parameters.AddWithValue("@email", email);
+
+                        int result = cmd.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            psw = newPsw;
+                            message = "账号[" + name + "]的密码已发到指定邮箱，请稍后从邮箱中查看新密码。";
+                            Logger.info("玩家申请找回了账号[{0}]的密码", name);
+                            return true;
+                        }
+                    }
+                }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.error("玩家修改密码遇到了问题", e.Message);
+                Logger.error("MySQL找回密码失败: {0}", ex.Message);
             }
-            finally
-            {
-                cmd.Dispose();
-                con.Close();
-            }
-            bool success = result > 0;
-            if (success)
-            {
-                psw = newPsw.ToString();
-                message = "账号[" + name + "]的密码已发到指定邮箱，请稍后从邮箱中查看新密码。";
-                Logger.info("玩家申请找回了账号[{0}]的密码", name);
-            }
-            return success;
+
+            return false;
         }
-        /// <summary>
-        /// 找回密码（重置密码）
-        /// </summary>
-        /// <param name="name">用户名</param>
-        /// <param name="email">邮箱</param>
-        /// <param name="psw">新密码</param>
-        /// <param name="message">信息</param>
-        /// <returns></returns>
-        internal bool FindPasswordMssql(string name, string email, out string psw, out string message)
+
+        #endregion
+
+        #region MSSQL 账号操作
+
+        private bool RegAccountMSSQL(string name, string password, string email, out string message)
+        {
+            message = "账号[" + name + "]注册成功";
+            string encodedPsw = EncodePasswordHash(password);
+
+            try
+            {
+                using (SqlConnection con = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    if (Config.newaccountdatabase)
+                    {
+                        // 新数据库结构
+                        // 先检查账号是否存在
+                        using (SqlCommand cmdCheck = new SqlCommand(MSSQL_CHECK_EXISTS_NEW, con))
+                        {
+                            cmdCheck.Parameters.AddWithValue("@name", name);
+                            int exists = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                            if (exists > 0)
+                            {
+                                message = "账号[" + name + "]已经被人注册了";
+                                return false;
+                            }
+                        }
+
+                        // 执行注册
+                        using (SqlCommand cmd = new SqlCommand(MSSQL_REG_ACCOUNT_NEW, con))
+                        {
+                            cmd.Parameters.AddWithValue("@name", name);
+                            cmd.Parameters.AddWithValue("@password", encodedPsw.Substring(2));
+                            cmd.Parameters.AddWithValue("@email", email ?? "");
+
+                            int result = cmd.ExecuteNonQuery();
+                            if (result > 0)
+                            {
+                                Logger.info("玩家成功注册了新账号[{0}]", name);
+                                return true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 传统数据库结构 - 使用参数化查询
+                        string sqlAccount = "INSERT INTO [dbo].[user_account]([account]) VALUES (@name)";
+                        using (SqlCommand cmdAccount = new SqlCommand(sqlAccount, con))
+                        {
+                            cmdAccount.Parameters.AddWithValue("@name", name);
+                            if (cmdAccount.ExecuteNonQuery() > 0)
+                            {
+                                string sqlAuth = "INSERT INTO [dbo].[user_auth] ([account], [password], [quiz1], [quiz2], [answer1], [answer2], [new_pwd_flag], [lastat], [email]) VALUES(@name, @password, '1', '2', 0, 0, 0, NULL, @email)";
+                                using (SqlCommand cmdAuth = new SqlCommand(sqlAuth, con))
+                                {
+                                    cmdAuth.Parameters.AddWithValue("@name", name);
+                                    cmdAuth.Parameters.AddWithValue("@password", encodedPsw);
+                                    cmdAuth.Parameters.AddWithValue("@email", email ?? "");
+
+                                    int result = cmdAuth.ExecuteNonQuery();
+                                    if (result > 0)
+                                    {
+                                        Logger.info("玩家成功注册了新账号[{0}]", name);
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Message.Contains("重复键") || ex.Message.Contains("Duplicate"))
+                {
+                    message = "账户[" + name + "]已存在";
+                }
+                else
+                {
+                    message = "注册失败：" + ex.Message;
+                }
+                Logger.error("MSSQL注册账号失败: {0}", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                message = "注册失败：系统错误";
+                Logger.error("MSSQL注册账号异常: {0}", ex.Message);
+            }
+
+            return false;
+        }
+
+        private bool CheckAccountPswMSSQL(string name, string psw)
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    string sql = Config.newaccountdatabase ? MSSQL_CHECK_ACCOUNT_NEW : MSSQL_CHECK_ACCOUNT_OLD;
+                    string encodedPsw = EncodePasswordHash(psw);
+
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@name", name);
+
+                        if (Config.newaccountdatabase)
+                        {
+                            cmd.Parameters.AddWithValue("@password", encodedPsw.Substring(2));
+                        }
+                        else
+                        {
+                            cmd.Parameters.AddWithValue("@password", encodedPsw);
+                        }
+
+                        object result = cmd.ExecuteScalar();
+                        return result != null && result.ToString() == name;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.error("MSSQL验证账号[{0}]密码失败: {1}", name, ex.Message);
+            }
+
+            return false;
+        }
+
+        private bool ChangePasswordMSSQL(string name, string oldPsw, string newPsw, out string message)
+        {
+            message = "密码修改失败，可能原密码不对！";
+
+            try
+            {
+                using (SqlConnection con = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    string sql = Config.newaccountdatabase ? MSSQL_CHANGE_PASSWORD_NEW : MSSQL_CHANGE_PASSWORD_OLD;
+                    string encodedOldPsw = EncodePasswordHash(oldPsw);
+                    string encodedNewPsw = EncodePasswordHash(newPsw);
+
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@name", name);
+
+                        if (Config.newaccountdatabase)
+                        {
+                            cmd.Parameters.AddWithValue("@oldPsw", encodedOldPsw.Substring(2));
+                            cmd.Parameters.AddWithValue("@newPsw", encodedNewPsw.Substring(2));
+                        }
+                        else
+                        {
+                            cmd.Parameters.AddWithValue("@oldPsw", encodedOldPsw);
+                            cmd.Parameters.AddWithValue("@newPsw", encodedNewPsw);
+                        }
+
+                        int result = cmd.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            message = "账号[" + name + "]的密码已成功修改";
+                            Logger.info("玩家成功修改了账号[{0}]的密码", name);
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.error("MSSQL修改密码失败: {0}", ex.Message);
+            }
+
+            return false;
+        }
+
+        private bool FindPasswordMSSQL(string name, string email, out string psw, out string message)
         {
             psw = null;
             message = "密码找回失败，账号或者邮箱不存在！";
 
-            Random rnd = new Random();
-            string newPsw = rnd.Next(10000, 1000000).ToString();
-            int result = -1;
-            string sql;
-
-            // 支持新的4.6数据库结构和传统结构
-            if (Config.newaccountdatabase)
-            {
-                sql = string.Format("UPDATE [dbo].[account_data] SET [password] = '{0}' WHERE [name] = '{1}' and [email] = '{2}';",
-                    EncodePasswordHash(newPsw).Substring(2), name, email);
-            }
-            else
-            {
-                sql = string.Format("UPDATE [dbo].[user_auth] SET [password] = {0} WHERE [account] = '{1}' and [email] = '{2}';",
-                    EncodePasswordHash(newPsw), name, email);
-            }
-
-            SqlCommand cmd = new SqlCommand(sql, mscon);
             try
             {
-                mscon.Open();
-                result = cmd.ExecuteNonQuery();
+                Random rnd = new Random();
+                string newPsw = rnd.Next(100000, 999999).ToString();
+                string encodedPsw = EncodePasswordHash(newPsw);
+
+                using (SqlConnection con = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_ls)))
+                {
+                    con.Open();
+
+                    string sql = Config.newaccountdatabase ? MSSQL_FIND_PASSWORD_NEW : MSSQL_FIND_PASSWORD_OLD;
+
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@name", name);
+                        cmd.Parameters.AddWithValue("@email", email);
+
+                        if (Config.newaccountdatabase)
+                        {
+                            cmd.Parameters.AddWithValue("@password", encodedPsw.Substring(2));
+                        }
+                        else
+                        {
+                            cmd.Parameters.AddWithValue("@password", encodedPsw);
+                        }
+
+                        int result = cmd.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            psw = newPsw;
+                            message = "账号[" + name + "]的密码已发到指定邮箱，请稍后从邮箱中查看新密码。";
+                            Logger.info("玩家申请找回了账号[{0}]的密码", name);
+                            return true;
+                        }
+                    }
+                }
             }
-            catch (SqlException e)
+            catch (Exception ex)
             {
-                Logger.error("玩家修改密码遇到了问题", e.Message);
+                Logger.error("MSSQL找回密码失败: {0}", ex.Message);
             }
-            finally
-            {
-                cmd.Dispose();
-                mscon.Close();
-            }
-            bool success = result > 0;
-            if (success)
-            {
-                psw = newPsw;
-                message = "账号[" + name + "]的密码已发到指定邮箱，请稍后从邮箱中查看新密码。";
-                Logger.info("玩家申请找回了账号[{0}]的密码", name);
-            }
-            return success;
+
+            return false;
         }
+
         #endregion
 
-        #region 密码加密方式
+        #region 密码加密
+
         /// <summary>
-        /// SHA1方式加密
+        /// SHA1方式加密 (MySQL)
         /// </summary>
-        /// <param name="password">密码字符串</param>
-        /// <returns>返回SH1加密并转换成BASE64格式</returns>
         private string EncodeBySHA1(string password)
         {
-            System.Security.Cryptography.SHA1 sha1 = new System.Security.Cryptography.SHA1CryptoServiceProvider();
-            byte[] tmpByte = sha1.ComputeHash(Encoding.UTF8.GetBytes(password.ToCharArray()));
-            sha1.Clear();
-            return Convert.ToBase64String(tmpByte);
+            using (System.Security.Cryptography.SHA1 sha1 = new System.Security.Cryptography.SHA1CryptoServiceProvider())
+            {
+                byte[] tmpByte = sha1.ComputeHash(Encoding.UTF8.GetBytes(password.ToCharArray()));
+                return Convert.ToBase64String(tmpByte);
+            }
         }
+
         /// <summary>
-        /// 真端的密码加密
+        /// 真端的密码加密 (MSSQL)
         /// </summary>
-        /// <param name="password"></param>
-        /// <returns></returns>
         public static string EncodePasswordHash(string password)
         {
             return "0x" + BitConverter.ToString(GetAccountPasswordHash(password), 0).Replace("-", string.Empty).ToUpper();
@@ -588,183 +661,204 @@ namespace AionNetGate.Services
             Buffer.BlockCopy(src, 1, dst, 0, 0x10);
             return dst;
         }
+
         #endregion
 
-
-
-
+        #region 通用查询方法
 
         /// <summary>
-        /// 返回DataSet - 支持MySQL和MSSQL
+        /// 返回DataSet - 使用参数化查询
         /// </summary>
-        /// <param name="cmdText">SQL语句</param>
-        /// <returns></returns>
-        public DataSet ExecuteSelectCmmond(string cmdText)
+        public DataSet ExecuteSelectCommand(string cmdText, Dictionary<string, object> parameters = null)
         {
             DataSet ds = new DataSet();
 
-            if (Config.isMysql)
+            try
             {
-                MySqlConnection mysqlGameCon = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_gs));
-                MySqlCommand cmd = new MySqlCommand(cmdText, mysqlGameCon);
-                using (MySqlDataAdapter da = new MySqlDataAdapter(cmd))
+                if (Config.isMysql)
                 {
-                    try
+                    using (MySqlConnection con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_gs)))
                     {
-                        mysqlGameCon.Open();
-                        da.Fill(ds);
+                        con.Open();
+                        using (MySqlCommand cmd = new MySqlCommand(cmdText, con))
+                        {
+                            if (parameters != null)
+                            {
+                                foreach (var param in parameters)
+                                {
+                                    cmd.Parameters.AddWithValue(param.Key, param.Value);
+                                }
+                            }
+
+                            using (MySqlDataAdapter da = new MySqlDataAdapter(cmd))
+                            {
+                                da.Fill(ds);
+                            }
+                        }
                     }
-                    catch (Exception ex)
+                }
+                else
+                {
+                    using (SqlConnection con = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_gs)))
                     {
-                        Logger.error(ex.Message);
-                    }
-                    finally
-                    {
-                        cmd.Dispose();
-                        mysqlGameCon.Close();
+                        con.Open();
+                        using (SqlCommand cmd = new SqlCommand(cmdText, con))
+                        {
+                            if (parameters != null)
+                            {
+                                foreach (var param in parameters)
+                                {
+                                    cmd.Parameters.AddWithValue(param.Key, param.Value);
+                                }
+                            }
+
+                            using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                            {
+                                da.Fill(ds);
+                            }
+                        }
                     }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                SqlCommand cmd = new SqlCommand(cmdText, gameCon);
-                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-                {
-                    try
-                    {
-                        gameCon.Open();
-                        da.Fill(ds);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.error(ex.Message);
-                    }
-                    finally
-                    {
-                        cmd.Dispose();
-                        gameCon.Close();
-                    }
-                }
+                Logger.error("执行查询失败: {0}", ex.Message);
             }
+
             return ds;
         }
 
         /// <summary>
-        /// 执行SQL命令 - 支持MySQL和MSSQL
+        /// 执行SQL命令 - 使用参数化查询
         /// </summary>
-        /// <param name="cmdText">SQL语句</param>
-        /// <returns>影响行数</returns>
-        public int ExecuteNonQuery(string cmdText)
+        public int ExecuteNonQuery(string cmdText, Dictionary<string, object> parameters = null)
         {
             int result = 0;
 
-            if (Config.isMysql)
+            try
             {
-                MySqlConnection mysqlGameCon = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_gs));
-                MySqlCommand cmd = new MySqlCommand(cmdText, mysqlGameCon);
-                try
+                if (Config.isMysql)
                 {
-                    mysqlGameCon.Open();
-                    result = cmd.ExecuteNonQuery();
+                    using (MySqlConnection con = new MySqlConnection(Config.GetMySQLConnectionString(Config.mysql_db_gs)))
+                    {
+                        con.Open();
+                        using (MySqlCommand cmd = new MySqlCommand(cmdText, con))
+                        {
+                            if (parameters != null)
+                            {
+                                foreach (var param in parameters)
+                                {
+                                    cmd.Parameters.AddWithValue(param.Key, param.Value);
+                                }
+                            }
+                            result = cmd.ExecuteNonQuery();
+                        }
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Logger.error(ex.Message);
-                }
-                finally
-                {
-                    cmd.Dispose();
-                    mysqlGameCon.Close();
+                    using (SqlConnection con = new SqlConnection(Config.GetMSSQLConnectionString(Config.mysql_db_gs)))
+                    {
+                        con.Open();
+                        using (SqlCommand cmd = new SqlCommand(cmdText, con))
+                        {
+                            if (parameters != null)
+                            {
+                                foreach (var param in parameters)
+                                {
+                                    cmd.Parameters.AddWithValue(param.Key, param.Value);
+                                }
+                            }
+                            result = cmd.ExecuteNonQuery();
+                        }
+                    }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                SqlCommand cmd = new SqlCommand(cmdText, gameCon);
-                try
-                {
-                    gameCon.Open();
-                    result = cmd.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    Logger.error(ex.Message);
-                }
-                finally
-                {
-                    cmd.Dispose();
-                    gameCon.Close();
-                }
+                Logger.error("执行命令失败: {0}", ex.Message);
             }
+
             return result;
         }
 
         /// <summary>
-        /// 获取在线账号统计 - 支持MySQL和MSSQL
+        /// 获取在线账号统计
         /// </summary>
-        /// <returns></returns>
         public int GetOnlineAccountCount()
         {
-            int count = 0;
             string sql;
 
             if (Config.isMysql)
             {
                 sql = "SELECT COUNT(*) FROM account_data WHERE last_login_time > last_logout_time";
             }
+            else if (Config.newaccountdatabase)
+            {
+                sql = "SELECT COUNT(*) FROM [dbo].[account_data] WHERE last_login_time > last_logout_time";
+            }
             else
             {
-                if (Config.newaccountdatabase)
-                {
-                    sql = "SELECT COUNT(*) FROM [dbo].[account_data] WHERE last_login_time > last_logout_time";
-                }
-                else
-                {
-                    sql = "SELECT COUNT(*) FROM [dbo].[user_data] WHERE last_login_time > last_logout_time";
-                }
+                sql = "SELECT COUNT(*) FROM [dbo].[user_data] WHERE last_login_time > last_logout_time";
             }
 
             try
             {
-                DataSet ds = ExecuteSelectCmmond(sql);
+                DataSet ds = ExecuteSelectCommand(sql);
                 if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
                 {
-                    count = Convert.ToInt32(ds.Tables[0].Rows[0][0]);
+                    return Convert.ToInt32(ds.Tables[0].Rows[0][0]);
                 }
             }
             catch (Exception ex)
             {
-                Logger.error("获取在线账号统计失败：" + ex.Message);
+                Logger.error("获取在线账号统计失败：{0}", ex.Message);
             }
 
-            return count;
+            return 0;
         }
 
         /// <summary>
-        /// 获取账号信息 - 支持MySQL和MSSQL
+        /// 获取账号信息 - 使用参数化查询
         /// </summary>
-        /// <param name="accountName">账号名</param>
-        /// <returns></returns>
         public DataSet GetAccountInfo(string accountName)
         {
             string sql;
 
             if (Config.isMysql)
             {
-                sql = string.Format("SELECT * FROM account_data WHERE `name` = '{0}'", accountName);
+                sql = "SELECT * FROM account_data WHERE `name` = @name";
+            }
+            else if (Config.newaccountdatabase)
+            {
+                sql = MSSQL_GET_ACCOUNT_INFO_NEW;
             }
             else
             {
-                if (Config.newaccountdatabase)
-                {
-                    sql = string.Format("SELECT * FROM [dbo].[account_data] WHERE [name] = '{0}'", accountName);
-                }
-                else
-                {
-                    sql = string.Format("SELECT * FROM [dbo].[user_auth] WHERE [account] = '{0}'", accountName);
-                }
+                sql = MSSQL_GET_ACCOUNT_INFO_OLD;
             }
 
-            return ExecuteSelectCmmond(sql);
+            var parameters = new Dictionary<string, object>
+            {
+                { "@name", accountName }
+            };
+
+            return ExecuteSelectCommand(sql, parameters);
         }
+
+        #endregion
+
+        #region 兼容旧接口
+
+        /// <summary>
+        /// 兼容旧的 ExecuteSelectCmmond 方法名
+        /// </summary>
+        [Obsolete("请使用 ExecuteSelectCommand 方法")]
+        public DataSet ExecuteSelectCmmond(string cmdText)
+        {
+            return ExecuteSelectCommand(cmdText);
+        }
+
+        #endregion
     }
 }

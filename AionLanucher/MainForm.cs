@@ -719,31 +719,76 @@ namespace AionLanucher
 
 
         private Thread getAccountThread;
-        private int accountId;
-        private int playerId;
+        private volatile int accountId;  // 使用volatile保证线程可见性
+        private volatile int playerId;
+        private volatile bool stopAccountThread = false;  // 线程停止标志，替代Thread.Abort()
+        private readonly object accountThreadLock = new object();  // 线程安全锁
 
         /// <summary>
         /// 第一次登陆时候获取账户ID并发送给网关，这个时候角色ID一般是获取不到的，因为玩家还没选择角色进入游戏世界
         /// </summary>
         internal void getAccountInfo()
         {
-            accountId = getAccountId(out playerId);
+            int tempPlayerId;
+            accountId = getAccountId(out tempPlayerId);
+            playerId = tempPlayerId;
+
             if (accountId > 0)
             {
-                SystemInfo si = new SystemInfo();
-                if (mainServer != null && mainServer.getConnection() != null && mainServer.getConnection().ClientSocket != null && mainServer.getConnection().ClientSocket.Connected)
-                    mainServer.getConnection().SendPacket(new SM_WAIGUA_INFO(accountId, playerId, si.getMNum(), si.GetMacAddress(), ""));
+                SendAccountInfoToServer();
             }
 
+            // 安全地停止旧线程
+            StopAccountThread();
 
-            if (getAccountThread != null && getAccountThread.IsAlive)
-            {
-                getAccountThread.Abort();
-            }
-            //所以这里需要开启一个后台线程来持续获取玩家的角色ID
+            // 创建新线程
+            stopAccountThread = false;
             getAccountThread = new Thread(AccountThread);
             getAccountThread.IsBackground = true;
             getAccountThread.Start();
+        }
+
+        /// <summary>
+        /// 安全停止账号线程
+        /// </summary>
+        private void StopAccountThread()
+        {
+            stopAccountThread = true;
+            if (getAccountThread != null && getAccountThread.IsAlive)
+            {
+                // 等待线程自然结束，最多等待3秒
+                if (!getAccountThread.Join(3000))
+                {
+                    // 如果线程仍未结束，记录警告但不强制中断
+                    // Thread.Abort()已废弃，不再使用
+                }
+            }
+        }
+
+        /// <summary>
+        /// 发送账号信息到服务器
+        /// </summary>
+        private void SendAccountInfoToServer()
+        {
+            try
+            {
+                // 缓存引用避免竞态条件
+                var server = mainServer;
+                if (server == null) return;
+
+                var connection = server.getConnection();
+                if (connection == null) return;
+
+                var socket = connection.ClientSocket;
+                if (socket == null || !socket.Connected) return;
+
+                SystemInfo si = new SystemInfo();
+                connection.SendPacket(new SM_WAIGUA_INFO(accountId, playerId, si.getMNum(), si.GetMacAddress(), ""));
+            }
+            catch (Exception)
+            {
+                // 忽略发送错误
+            }
         }
 
         /// <summary>
@@ -751,64 +796,88 @@ namespace AionLanucher
         /// </summary>
         internal void AccountThread()
         {
-            while (true)
+            while (!stopAccountThread)
             {
-                int pId;
-                accountId = getAccountId(out pId);
-                if (accountId == 0)
-                    break;
-                if (accountId > 0 && pId > 0 && playerId != pId) //当获得到角色ID并且跟之前的角色ID不同时候才发封包给网关
+                try
                 {
-                    //说明玩家在游戏中了，可以正常获取角色ID了
-                    playerId = pId;
+                    int pId;
+                    int aId = getAccountId(out pId);
 
-                    SystemInfo si = new SystemInfo();
-                    if (mainServer != null && mainServer.getConnection() != null && mainServer.getConnection().ClientSocket != null && mainServer.getConnection().ClientSocket.Connected)
-                        mainServer.getConnection().SendPacket(new SM_WAIGUA_INFO(accountId, playerId, si.getMNum(), si.GetMacAddress(), ""));
+                    if (aId == 0 || stopAccountThread)
+                        break;
 
-                    Thread.Sleep(300000);
+                    if (aId > 0 && pId > 0 && playerId != pId)
+                    {
+                        accountId = aId;
+                        playerId = pId;
+                        SendAccountInfoToServer();
+
+                        // 分段睡眠以便更快响应停止信号
+                        for (int i = 0; i < 30 && !stopAccountThread; i++)
+                        {
+                            Thread.Sleep(10000);  // 5分钟 = 30 * 10秒
+                        }
+                    }
+
+                    // 分段睡眠
+                    for (int i = 0; i < 6 && !stopAccountThread; i++)
+                    {
+                        Thread.Sleep(10000);  // 1分钟 = 6 * 10秒
+                    }
                 }
-
-                Thread.Sleep(60000);
+                catch (Exception)
+                {
+                    // 忽略异常，继续循环
+                    if (!stopAccountThread)
+                    {
+                        Thread.Sleep(10000);
+                    }
+                }
             }
         }
 
+        /// <summary>
+        /// 获取账户ID - 修复内存地址累加错误
+        /// </summary>
         private int getAccountId(out int pid)
         {
             int AccountId = 0;
             int PlayerId = 0;
-            if (AionProcess != null && !AionProcess.HasExited)
+
+            try
             {
-                IntPtr gameBase = IntPtr.Zero;
-                for (int i = 0; i < AionProcess.Modules.Count; i++)
+                // 缓存进程引用避免竞态条件
+                var process = AionProcess;
+                if (process != null && !process.HasExited)
                 {
-                    string moduleName = AionProcess.Modules[i].ModuleName;
-                    if (moduleName.ToLower().Equals("game.dll"))
+                    IntPtr gameBase = IntPtr.Zero;
+                    for (int i = 0; i < process.Modules.Count; i++)
                     {
-                        gameBase = AionProcess.Modules[i].BaseAddress;
-                        break;
+                        string moduleName = process.Modules[i].ModuleName;
+                        if (moduleName.ToLower().Equals("game.dll"))
+                        {
+                            gameBase = process.Modules[i].BaseAddress;
+                            break;
+                        }
+                    }
+
+                    if (gameBase != IntPtr.Zero)
+                    {
+                        // 修复：使用局部变量计算地址，不修改类成员变量
+                        // 原代码每次调用都会累加，导致地址越来越大
+                        int calcAccountAddr = accountIdAddress + gameBase.ToInt32();
+                        int calcPlayerAddr = playerIdAddress + gameBase.ToInt32();
+
+                        readMemoryData(process.Handle, calcAccountAddr, out AccountId);
+                        readMemoryData(process.Handle, calcPlayerAddr, out PlayerId);
                     }
                 }
-
-
-                if (gameBase != IntPtr.Zero)
-                {
-
-                    accountIdAddress += gameBase.ToInt32();//偏移量+游戏基址
-                    playerIdAddress += gameBase.ToInt32();
-
-
-                    readMemoryData(AionProcess.Handle, accountIdAddress, out AccountId);
-                    readMemoryData(AionProcess.Handle, playerIdAddress, out PlayerId);
-
-                    //    byte[] ns = new byte[52];
-                    //    int readSize;
-                    //    WinAPI.ReadProcessMemory(AionProcess.Handle, playerNameAddress, ns, (uint)ns.Length, out readSize);
-                    //    string name = BitConverter.ToString(ns, 0, readSize);
-
-                    //    MessageBox.Show(string.Format("账户ID：{0}\r\n角色ID：{1}\r\n角色名：{2}", accountId, playerId, name));
-                }
             }
+            catch (Exception)
+            {
+                // 进程可能已退出，忽略异常
+            }
+
             pid = PlayerId;
             return AccountId;
         }

@@ -25,11 +25,8 @@ namespace AionNetGate.Netwok.Client
 
             if (ac.image == null || ac.image.Width != sw || ac.image.Height != sh)
             {
-                // 修复：释放旧图像资源
-                if (ac.image != null)
-                    ac.image.Dispose();
-
-                ac.image = new Bitmap(sw, sh);
+                // 使用SetImage方法安全地替换图像，自动释放旧资源
+                ac.SetImage(new Bitmap(sw, sh));
             }
 
             lock (ac.image)

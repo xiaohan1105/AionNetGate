@@ -70,11 +70,39 @@ namespace AionNetGate.Services
 
         public override void Stop()
         {
-            foreach (LauncherInfo info in connectionTable.Values)
+            try
             {
-                info.Connection.onDisconnect();
+                // 创建连接列表副本以避免迭代时修改集合
+                LauncherInfo[] connections = new LauncherInfo[connectionTable.Count];
+                connectionTable.Values.CopyTo(connections, 0);
+
+                foreach (LauncherInfo info in connections)
+                {
+                    try
+                    {
+                        if (info != null && info.Connection != null)
+                            info.Connection.onDisconnect();
+                    }
+                    catch (Exception ex)
+                    {
+                        log.error("断开客户端连接时发生错误: " + ex.Message);
+                    }
+                }
             }
-            DefenseService.Instance.Clear();
+            catch (Exception ex)
+            {
+                log.error("停止服务时枚举连接失败: " + ex.Message);
+            }
+
+            try
+            {
+                DefenseService.Instance.Clear();
+            }
+            catch (Exception ex)
+            {
+                log.error("清理防御服务时发生错误: " + ex.Message);
+            }
+
             connectionTable.Clear();
             base.Stop();
         }

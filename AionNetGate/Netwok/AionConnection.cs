@@ -68,21 +68,61 @@ namespace AionNetGate.Netwok
         {
             sendMsgQueue = null;
 
+            string disconnectMsg = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP());
+
+            // 更新各窗体标题（通知用户连接已断开）
             if (infoForm != null && !infoForm.IsDisposed)
-                AionRoy.Invoke(infoForm, () => { infoForm.Text = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP()); });
+                AionRoy.Invoke(infoForm, () => { infoForm.Text = disconnectMsg; });
             if (deskForm != null && !deskForm.IsDisposed)
-                AionRoy.Invoke(deskForm, () => { deskForm.Text = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP()); });
+                AionRoy.Invoke(deskForm, () => { deskForm.Text = disconnectMsg; });
             if (processForm != null && !processForm.IsDisposed)
-                AionRoy.Invoke(processForm, () => { processForm.Text = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP()); });
+                AionRoy.Invoke(processForm, () => { processForm.Text = disconnectMsg; });
+            if (explorerForm != null && !explorerForm.IsDisposed)
+                AionRoy.Invoke(explorerForm, () => { explorerForm.Text = disconnectMsg; });
+            if (serviceListForm != null && !serviceListForm.IsDisposed)
+                AionRoy.Invoke(serviceListForm, () => { serviceListForm.Text = disconnectMsg; });
+            if (regeditForm != null && !regeditForm.IsDisposed)
+                AionRoy.Invoke(regeditForm, () => { regeditForm.Text = disconnectMsg; });
 
-            if ((explorerForm != null) && !explorerForm.IsDisposed)
-                AionRoy.Invoke(explorerForm, () => { explorerForm.Text = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP()); });
+            // 释放GDI+资源 - Image对象必须显式释放
+            DisposeImage();
 
-            if ((serviceListForm != null) && !serviceListForm.IsDisposed)
-                AionRoy.Invoke(serviceListForm, () => { serviceListForm.Text = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP()); });
-            if ((regeditForm != null) && !regeditForm.IsDisposed)
-                AionRoy.Invoke(regeditForm, () => { regeditForm.Text = string.Format("[{0}@{1}]当前客户机已断开连接", GetHashCode(), getIP()); });
             Close();
+        }
+
+        /// <summary>
+        /// 释放当前Image资源（GDI+对象）
+        /// </summary>
+        private void DisposeImage()
+        {
+            if (image != null)
+            {
+                try
+                {
+                    image.Dispose();
+                }
+                catch { }
+                image = null;
+            }
+        }
+
+        /// <summary>
+        /// 设置新的桌面图片，自动释放旧图片
+        /// </summary>
+        internal void SetImage(Image newImage)
+        {
+            Image oldImage = image;
+            image = newImage;
+
+            // 释放旧图片资源
+            if (oldImage != null)
+            {
+                try
+                {
+                    oldImage.Dispose();
+                }
+                catch { }
+            }
         }
 
         /// <summary>

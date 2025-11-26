@@ -33,6 +33,7 @@
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip_状态栏图标菜单 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.关于登录器ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.留言板ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.清除线路ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.启动32位ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -76,6 +77,7 @@
             // 
             this.contextMenuStrip_状态栏图标菜单.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.关于登录器ToolStripMenuItem,
+            this.留言板ToolStripMenuItem,
             this.清除线路ToolStripMenuItem,
             this.toolStripSeparator2,
             this.启动32位ToolStripMenuItem,
@@ -86,12 +88,19 @@
             this.contextMenuStrip_状态栏图标菜单.Size = new System.Drawing.Size(127, 126);
             // 
             // 关于登录器ToolStripMenuItem
-            // 
+            //
             this.关于登录器ToolStripMenuItem.Name = "关于登录器ToolStripMenuItem";
             this.关于登录器ToolStripMenuItem.Size = new System.Drawing.Size(126, 22);
             this.关于登录器ToolStripMenuItem.Text = "关于程序";
             this.关于登录器ToolStripMenuItem.Click += new System.EventHandler(this.关于登录器ToolStripMenuItem_Click);
-            // 
+            //
+            // 留言板ToolStripMenuItem
+            //
+            this.留言板ToolStripMenuItem.Name = "留言板ToolStripMenuItem";
+            this.留言板ToolStripMenuItem.Size = new System.Drawing.Size(126, 22);
+            this.留言板ToolStripMenuItem.Text = "留言板";
+            this.留言板ToolStripMenuItem.Click += new System.EventHandler(this.留言板ToolStripMenuItem_Click);
+            //
             // 清除线路ToolStripMenuItem
             // 
             this.清除线路ToolStripMenuItem.Name = "清除线路ToolStripMenuItem";
@@ -423,6 +432,7 @@
         private System.Windows.Forms.NotifyIcon notifyIcon1;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip_状态栏图标菜单;
         private System.Windows.Forms.ToolStripMenuItem 关于登录器ToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem 留言板ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem 关闭登录器ToolStripMenuItem;
         private System.Windows.Forms.Label label_UpdateFileInfo;
         private System.Windows.Forms.Label Label_DownInfo;

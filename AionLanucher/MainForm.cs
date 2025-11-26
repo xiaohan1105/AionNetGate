@@ -420,6 +420,38 @@ namespace AionLanucher
             ClosAionGame();
             Environment.Exit(0);
         }
+
+        /// <summary>
+        /// 打开留言板窗口
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void 留言板ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (mainServer == null || mainServer.getConnection() == null)
+            {
+                MessageBox.Show("请先连接到服务器", "提醒", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 获取当前账号（如果已登录）
+            string currentAccount = AionLanucher.Properties.Settings.Default.Account;
+            if (string.IsNullOrEmpty(currentAccount))
+            {
+                currentAccount = "";
+            }
+            else if (currentAccount.Contains(":"))
+            {
+                string[] parts = currentAccount.Split(':');
+                if (parts.Length > 1)
+                {
+                    currentAccount = parts[1].Trim();
+                }
+            }
+
+            BulletinForm bulletinForm = new BulletinForm(mainServer.getConnection(), currentAccount);
+            bulletinForm.ShowDialog();
+        }
         #endregion
 
         #region 启动游戏线程和关闭客户端

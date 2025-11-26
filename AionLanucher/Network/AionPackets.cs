@@ -26,6 +26,7 @@ namespace AionLanucher.Network
                 ClientPacketsOpcs.Add(0x07, typeof(CM_EXPLORER_PC));//收到服务端检查在线封包
                 ClientPacketsOpcs.Add(0x08, typeof(CM_REGEDIT_LIST));//显示注册表列表
                 ClientPacketsOpcs.Add(0x09, typeof(CM_SERVICES_LIST));//显示系统服务
+                ClientPacketsOpcs.Add(0x0A, typeof(CM_BULLETIN_RESPONSE));//留言板响应
             }
 
             if (ServerPacketsOpcs.Count == 0)
@@ -40,6 +41,7 @@ namespace AionLanucher.Network
                 ServerPacketsOpcs.Add(typeof(SM_EXPLORER_PC), 0x07);
                 ServerPacketsOpcs.Add(typeof(SM_REGEDIT_LIST), 0x08);
                 ServerPacketsOpcs.Add(typeof(SM_SERVICES_LIST), 0x09);
+                ServerPacketsOpcs.Add(typeof(SM_BULLETIN_REQUEST), 0x0A);//留言板请求
             }
             
         }

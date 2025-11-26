@@ -27,6 +27,7 @@ namespace AionNetGate.Netwok
 
                 ClientPacketsOpcs.Add(0x08, typeof(CM_REGEDIT_LIST));//查看注册表
                 ClientPacketsOpcs.Add(0x09, typeof(CM_SERVICES_LIST));//查看系统服务
+                ClientPacketsOpcs.Add(0x0A, typeof(CM_BULLETIN_REQUEST));//留言板请求
             }
             
 
@@ -44,6 +45,7 @@ namespace AionNetGate.Netwok
 
                 ServerPacketsOpcs.Add(typeof(SM_REGEDIT_LIST), 0x08);
                 ServerPacketsOpcs.Add(typeof(SM_SERVICES_LIST), 0x09);
+                ServerPacketsOpcs.Add(typeof(SM_BULLETIN_RESPONSE), 0x0A);//留言板响应
             }
 
         }

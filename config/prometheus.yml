@@ -1,0 +1,28 @@
+# Prometheus 配置文件
+# AionNetGate 网关监控
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus 自身指标
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # AionNetGate 网关服务指标
+  - job_name: 'aionnetgate'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['gateway:11001']
+        labels:
+          service: 'gateway'
+          environment: 'production'
+    scrape_interval: 10s
+    scrape_timeout: 5s

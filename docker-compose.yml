@@ -1,0 +1,160 @@
+# AionNetGate 完整部署配置
+# 使用: docker-compose up -d
+# 监控模式: docker-compose --profile monitoring up -d
+
+services:
+  # Web API 管理后台
+  webapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapi
+    container_name: aionnetgate-webapi
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - Database__Provider=MySQL
+      - Database__ConnectionString=Server=mysql;Database=aion_netgate;User Id=aion;Password=AionGate123!;
+      - Security__JwtSecretKey=${JWT_SECRET:-AionNetGate-Production-Secret-Key-2024-Change-Me!}
+      - Security__JwtIssuer=AionNetGate
+      - Security__JwtAudience=AionNetGate-WebApp
+    volumes:
+      - webapi-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - aion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # 前端 Web 界面
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: aionnetgate-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - webapi
+    networks:
+      - aion-network
+
+  # 网关服务
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aionnetgate
+    restart: unless-stopped
+    ports:
+      - "10001:10001"  # 网关端口
+      - "11001:11001"  # 管理API端口
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Server__BindAddress=0.0.0.0
+      - Server__Port=10001
+      - Server__MaxConnections=10000
+      - Database__Provider=MySQL
+      - Database__ConnectionString=Server=mysql;Database=aion_netgate;User Id=aion;Password=AionGate123!;
+      - Security__EncryptionKey=${ENCRYPTION_KEY:-YOUR_32_BYTE_BASE64_KEY_HERE}
+      - Security__JwtSecretKey=${JWT_SECRET:-YOUR_STRONG_JWT_SECRET_KEY_256_BITS}
+    volumes:
+      - gateway-logs:/app/logs
+      - gateway-data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - aion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11001/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: aionnetgate-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootPass123!}
+      MYSQL_DATABASE: aion_netgate
+      MYSQL_USER: aion
+      MYSQL_PASSWORD: AionGate123!
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - aion-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Prometheus 监控 (可选)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aionnetgate-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - aion-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    profiles:
+      - monitoring
+
+  # Grafana 仪表盘 (可选)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: aionnetgate-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - aion-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+networks:
+  aion-network:
+    driver: bridge
+
+volumes:
+  webapi-logs:
+  gateway-logs:
+  gateway-data:
+  mysql-data:
+  prometheus-data:
+  grafana-data:

@@ -1,0 +1,44 @@
+# AionNetGate Web API Dockerfile
+# 多阶段构建，优化镜像大小
+
+# 构建阶段
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# 复制项目文件并恢复依赖
+COPY src/AionNetGate.Core/AionNetGate.Core.csproj src/AionNetGate.Core/
+COPY src/AionNetGate.Infrastructure/AionNetGate.Infrastructure.csproj src/AionNetGate.Infrastructure/
+COPY src/AionNetGate.Application/AionNetGate.Application.csproj src/AionNetGate.Application/
+COPY src/AionNetGate.WebApi/AionNetGate.WebApi.csproj src/AionNetGate.WebApi/
+
+RUN dotnet restore src/AionNetGate.WebApi/AionNetGate.WebApi.csproj
+
+# 复制源代码并构建
+COPY src/ src/
+RUN dotnet publish src/AionNetGate.WebApi/AionNetGate.WebApi.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# 运行阶段
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+
+# 安装健康检查所需的curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN adduser --disabled-password --gecos '' appuser
+USER appuser
+
+# 复制发布文件
+COPY --from=build /app/publish .
+
+# 创建日志目录
+RUN mkdir -p logs
+
+# 暴露端口
+EXPOSE 5000
+
+# 设置入口点
+ENTRYPOINT ["dotnet", "AionNetGate.WebApi.dll"]

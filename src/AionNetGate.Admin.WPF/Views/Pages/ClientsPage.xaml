@@ -1,0 +1,239 @@
+<Page
+    x:Class="AionNetGate.Admin.WPF.Views.Pages.ClientsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:AionNetGate.Admin.WPF.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:ClientsPageViewModel}"
+    Title="客户端管理">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <ui:Card Grid.Row="0" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <ui:Button
+                        Content="刷新"
+                        Icon="{ui:SymbolIcon ArrowSync24}"
+                        Command="{Binding RefreshCommand}"
+                        Margin="0,0,8,0" />
+                    <ui:Button
+                        Content="断开连接"
+                        Icon="{ui:SymbolIcon PlugDisconnected24}"
+                        Appearance="Danger"
+                        Command="{Binding DisconnectClientCommand}"
+                        IsEnabled="{Binding SelectedClient, Converter={StaticResource NullToVisibilityConverter}}" />
+                </StackPanel>
+
+                <ui:TextBox
+                    Grid.Column="1"
+                    PlaceholderText="搜索客户端..."
+                    Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                    Icon="{ui:SymbolIcon Search24}"
+                    Margin="16,0" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <ui:Badge Appearance="Info">
+                        <TextBlock Text="{Binding TotalClients, StringFormat='共 {0} 个客户端'}" />
+                    </ui:Badge>
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
+        <!-- 客户端列表 -->
+        <ui:Card Grid.Row="1">
+            <DataGrid
+                ItemsSource="{Binding Clients}"
+                SelectedItem="{Binding SelectedClient}"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                SelectionMode="Single"
+                GridLinesVisibility="Horizontal"
+                HeadersVisibility="Column"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False">
+
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="查看远程桌面" Command="{Binding ViewRemoteDesktopCommand}">
+                            <MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Desktop24" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="查看进程列表" Command="{Binding ViewProcessesCommand}">
+                            <MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="AppsList24" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="浏览文件系统" Command="{Binding ViewFilesCommand}">
+                            <MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Folder24" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="禁止登陆" Command="{Binding BanClientCommand}">
+                            <MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="PersonProhibited24" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="允许登陆" Command="{Binding UnbanClientCommand}">
+                            <MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="PersonAvailable24" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="断开连接" Command="{Binding DisconnectClientCommand}">
+                            <MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="PlugDisconnected24" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+
+                <DataGrid.Columns>
+                    <!-- 状态 -->
+                    <DataGridTemplateColumn Header="状态" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Ellipse
+                                    Width="12"
+                                    Height="12"
+                                    HorizontalAlignment="Center"
+                                    Fill="{Binding IsOnline, Converter={StaticResource BoolToColorConverter}}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- 连接 ID -->
+                    <DataGridTextColumn
+                        Header="连接 ID"
+                        Binding="{Binding ConnectionId}"
+                        Width="100" />
+
+                    <!-- 账号名 -->
+                    <DataGridTextColumn
+                        Header="账号名"
+                        Binding="{Binding Username}"
+                        Width="120">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground" Value="{ui:ThemeResource SystemAccentColorPrimaryBrush}" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- 硬件 ID -->
+                    <DataGridTextColumn
+                        Header="硬件 ID"
+                        Binding="{Binding HardwareId}"
+                        Width="150">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontFamily" Value="Consolas" />
+                                <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- IP 地址 -->
+                    <DataGridTextColumn
+                        Header="IP 地址"
+                        Binding="{Binding RemoteAddress}"
+                        Width="150">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontFamily" Value="Consolas" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- 连接时长 -->
+                    <DataGridTextColumn
+                        Header="连接时长"
+                        Binding="{Binding ConnectedAt, Converter={StaticResource ConnectionTimeConverter}}"
+                        Width="100" />
+
+                    <!-- 版本 -->
+                    <DataGridTextColumn
+                        Header="版本"
+                        Binding="{Binding ClientVersion}"
+                        Width="80" />
+
+                    <!-- 操作系统 -->
+                    <DataGridTextColumn
+                        Header="操作系统"
+                        Binding="{Binding OsInfo}"
+                        Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </ui:Card>
+
+        <!-- 详情面板 -->
+        <ui:Card
+            Grid.Row="2"
+            Margin="0,16,0,0"
+            Visibility="{Binding SelectedClient, Converter={StaticResource NullToVisibilityConverter}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="连接 ID: " Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{Binding SelectedClient.ConnectionId}" Margin="0,0,24,0" />
+                    <TextBlock Text="账号 ID: " Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{Binding SelectedClient.AccountId}" Margin="0,0,24,0" />
+                    <TextBlock Text="连接时间: " Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{Binding SelectedClient.ConnectedAt, StringFormat='yyyy-MM-dd HH:mm:ss'}" Margin="0,0,24,0" />
+                    <TextBlock Text="硬件 ID: " Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{Binding SelectedClient.HardwareId}" FontFamily="Consolas" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <ui:Button
+                        Content="远程桌面"
+                        Icon="{ui:SymbolIcon Desktop24}"
+                        Command="{Binding ViewRemoteDesktopCommand}"
+                        Margin="0,0,8,0" />
+                    <ui:Button
+                        Content="进程管理"
+                        Icon="{ui:SymbolIcon AppsList24}"
+                        Command="{Binding ViewProcessesCommand}"
+                        Margin="0,0,8,0" />
+                    <ui:Button
+                        Content="文件浏览"
+                        Icon="{ui:SymbolIcon Folder24}"
+                        Command="{Binding ViewFilesCommand}" />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
+        <!-- 加载遮罩 -->
+        <Grid
+            Grid.Row="1"
+            Background="{ui:ThemeResource ControlOnImageFillColorDefaultBrush}"
+            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ui:ProgressRing IsIndeterminate="True" Width="48" Height="48" />
+                <TextBlock Text="正在加载..." Margin="0,16,0,0" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

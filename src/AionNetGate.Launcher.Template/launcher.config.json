@@ -1,0 +1,35 @@
+{
+  "GameTitle": "{{GAME_TITLE}}",
+  "ServerName": "{{SERVER_NAME}}",
+  "Version": "{{VERSION}}",
+  "Gateway": {
+    "Host": "{{GATEWAY_HOST}}",
+    "Port": {{GATEWAY_PORT}}
+  },
+  "Game": {
+    "ExecutablePath": "{{GAME_EXE_PATH}}",
+    "WorkingDirectory": "{{GAME_WORK_DIR}}",
+    "CommandLineArgs": "{{GAME_ARGS}}",
+    "LsPort": {{LS_PORT}}
+  },
+  "Update": {
+    "CheckUrl": "{{UPDATE_CHECK_URL}}",
+    "DownloadUrl": "{{UPDATE_DOWNLOAD_URL}}"
+  },
+  "AntiCheat": {
+    "Enabled": {{ANTI_CHEAT_ENABLED}},
+    "ProcessBlacklist": [
+      {{PROCESS_BLACKLIST}}
+    ],
+    "FileIntegrityCheck": {{FILE_INTEGRITY_CHECK}}
+  },
+  "Skin": {
+    "BackgroundImage": "Resources/Skins/Default/background.png",
+    "ButtonImages": {
+      "Start": "Resources/Skins/Default/button_start.png",
+      "Close": "Resources/Skins/Default/button_close.png"
+    },
+    "ShowWebBrowser": {{SHOW_WEB_BROWSER}},
+    "WebUrl": "{{WEB_URL}}"
+  }
+}

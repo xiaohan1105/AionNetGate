@@ -1,0 +1,172 @@
+<Page
+    x:Class="AionNetGate.Admin.WPF.Views.Pages.LegionStatsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:AionNetGate.Admin.WPF.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:LegionStatsViewModel}"
+    Title="军团统计">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 统计设置 -->
+        <ui:Card Grid.Row="0" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Text="开始时间" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <DatePicker SelectedDate="{Binding StartTime}" Width="120" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Text="结束时间" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <DatePicker SelectedDate="{Binding EndTime}" Width="120" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Text="统计间隔" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ui:NumberBox Value="{Binding StatsInterval}" Width="80" Minimum="1" />
+                    <TextBlock Text="分钟" VerticalAlignment="Center" Margin="8,0,0,0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Text="平均次数" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ui:NumberBox Value="{Binding AverageCount}" Width="80" Minimum="1" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                    <ui:Button
+                        Content="开始统计"
+                        Icon="{ui:SymbolIcon Play24}"
+                        Appearance="Primary"
+                        Command="{Binding StartStatsCommand}"
+                        IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBoolConverter}}"
+                        Margin="0,0,8,0" />
+                    <ui:Button
+                        Content="停止统计"
+                        Icon="{ui:SymbolIcon Stop24}"
+                        Appearance="Danger"
+                        Command="{Binding StopStatsCommand}"
+                        IsEnabled="{Binding IsRunning}" />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
+        <!-- 统计数据表格 -->
+        <ui:Card Grid.Row="1">
+            <DataGrid
+                ItemsSource="{Binding LegionStats}"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                SelectionMode="Single"
+                GridLinesVisibility="Horizontal"
+                HeadersVisibility="Column"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False">
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="军团名称" Binding="{Binding LegionName}" Width="150">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground" Value="{ui:ThemeResource SystemAccentColorPrimaryBrush}" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="军团长" Binding="{Binding LeaderName}" Width="100" />
+
+                    <DataGridTextColumn Header="种族" Binding="{Binding Race}" Width="80" />
+
+                    <DataGridTextColumn Header="等级" Binding="{Binding Level}" Width="60">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="总人数" Binding="{Binding TotalMembers}" Width="80">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="在线人数" Binding="{Binding OnlineMembers}" Width="80">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                <Setter Property="Foreground" Value="LimeGreen" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="统计时间" Binding="{Binding StatTime, StringFormat='HH:mm:ss'}" Width="100" />
+
+                    <DataGridTextColumn Header="平均在线" Binding="{Binding AverageOnline, StringFormat='F1'}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </ui:Card>
+
+        <!-- 底部状态栏 -->
+        <ui:Card Grid.Row="2" Margin="0,16,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <ui:Badge Appearance="Info" Margin="0,0,16,0">
+                        <TextBlock Text="{Binding TotalLegions, StringFormat='军团数: {0}'}" />
+                    </ui:Badge>
+                    <ui:Badge Appearance="Success" Margin="0,0,16,0">
+                        <TextBlock Text="{Binding TotalOnline, StringFormat='总在线: {0}'}" />
+                    </ui:Badge>
+                    <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <ui:Button
+                        Content="清空数据"
+                        Icon="{ui:SymbolIcon Delete24}"
+                        Command="{Binding ClearStatsCommand}"
+                        Margin="0,0,8,0" />
+                    <ui:Button
+                        Content="导出数据"
+                        Icon="{ui:SymbolIcon ArrowDownload24}"
+                        Command="{Binding ExportStatsCommand}"
+                        Margin="0,0,8,0" />
+                    <ui:Button
+                        Content="保存设置"
+                        Icon="{ui:SymbolIcon Save24}"
+                        Command="{Binding SaveSettingsCommand}" />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+    </Grid>
+</Page>

@@ -1,0 +1,165 @@
+<Page
+    x:Class="AionNetGate.Admin.WPF.Views.Pages.ServerConfigPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:AionNetGate.Admin.WPF.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:ServerConfigViewModel}"
+    Title="服务器配置">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16">
+            <!-- 网关配置 -->
+            <ui:Card Margin="0,0,0,16">
+                <ui:CardExpander Header="网关配置" Icon="{ui:SymbolIcon Server24}" IsExpanded="True">
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,16">
+                            <TextBlock Text="网关 IP" Margin="0,0,0,4" />
+                            <ui:TextBox Text="{Binding GatewayIp}" PlaceholderText="127.0.0.1" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,16">
+                            <TextBlock Text="网关端口" Margin="0,0,0,4" />
+                            <ui:NumberBox Value="{Binding GatewayPort}" Minimum="1" Maximum="65535" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
+                            <CheckBox Content="启用双线双 IP" IsChecked="{Binding EnableDualIp}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,8,16"
+                                    IsEnabled="{Binding EnableDualIp}">
+                            <TextBlock Text="网关 IP 2" Margin="0,0,0,4" />
+                            <ui:TextBox Text="{Binding GatewayIp2}" PlaceholderText="备用 IP" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,0,0,16">
+                            <TextBlock Text="下载端口" Margin="0,0,0,4" />
+                            <ui:NumberBox Value="{Binding DownloadPort}" Minimum="1" Maximum="65535" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
+                            <TextBlock Text="转发密码" Margin="0,0,0,4" />
+                            <ui:PasswordBox Password="{Binding ForwardPassword}" PlaceholderText="可选" />
+                        </StackPanel>
+                    </Grid>
+                </ui:CardExpander>
+            </ui:Card>
+
+            <!-- 自动重启设置 -->
+            <ui:Card Margin="0,0,0,16">
+                <ui:CardExpander Header="自动重启设置" Icon="{ui:SymbolIcon ArrowRepeatAll24}" IsExpanded="True">
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,16">
+                            <CheckBox Content="网关自动重启" IsChecked="{Binding EnableGatewayAutoRestart}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                        IsEnabled="{Binding EnableGatewayAutoRestart}">
+                                <TextBlock Text="重启间隔" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <ui:NumberBox Value="{Binding GatewayRestartInterval}" Width="100" Minimum="1" />
+                                <TextBlock Text="分钟" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,16">
+                            <CheckBox Content="转发器自动重启" IsChecked="{Binding EnableForwarderAutoRestart}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                        IsEnabled="{Binding EnableForwarderAutoRestart}">
+                                <TextBlock Text="重启间隔" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <ui:NumberBox Value="{Binding ForwarderRestartInterval}" Width="100" Minimum="1" />
+                                <TextBlock Text="分钟" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ui:CardExpander>
+            </ui:Card>
+
+            <!-- 安全设置 -->
+            <ui:Card Margin="0,0,0,16">
+                <ui:CardExpander Header="安全设置" Icon="{ui:SymbolIcon ShieldCheckmark24}" IsExpanded="True">
+                    <StackPanel Margin="0,16,0,0">
+                        <CheckBox Content="检测到攻击自动封 IP" IsChecked="{Binding AutoBanOnAttack}" Margin="0,0,0,8" />
+                        <CheckBox Content="开启通讯日志显示" IsChecked="{Binding EnableCommunicationLog}" Margin="0,0,0,8" />
+                        <CheckBox Content="禁止提前登录" IsChecked="{Binding DisableEarlyLogin}" Margin="0,0,0,8" />
+                        <CheckBox Content="禁用密码找回" IsChecked="{Binding DisablePasswordRecovery}" />
+                    </StackPanel>
+                </ui:CardExpander>
+            </ui:Card>
+
+            <!-- 远程桌面设置 -->
+            <ui:Card Margin="0,0,0,16">
+                <ui:CardExpander Header="远程桌面设置" Icon="{ui:SymbolIcon Desktop24}" IsExpanded="True">
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="图像压缩率 (0-100)" Margin="0,0,0,4" />
+                            <ui:NumberBox Value="{Binding ImageCompressRate}" Minimum="0" Maximum="100" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                            <TextBlock Text="分块宽度" Margin="0,0,0,4" />
+                            <ui:NumberBox Value="{Binding ImageBlockWidth}" Minimum="100" Maximum="1920" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                            <TextBlock Text="分块高度" Margin="0,0,0,4" />
+                            <ui:NumberBox Value="{Binding ImageBlockHeight}" Minimum="100" Maximum="1080" />
+                        </StackPanel>
+                    </Grid>
+                </ui:CardExpander>
+            </ui:Card>
+
+            <!-- 操作按钮 -->
+            <ui:Card>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <ui:Button
+                            Content="保存配置"
+                            Icon="{ui:SymbolIcon Save24}"
+                            Appearance="Primary"
+                            Command="{Binding SaveConfigCommand}"
+                            Margin="0,0,8,0" />
+                        <ui:Button
+                            Content="恢复默认"
+                            Icon="{ui:SymbolIcon ArrowReset24}"
+                            Command="{Binding ResetToDefaultsCommand}" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1" Text="{Binding StatusText}" VerticalAlignment="Center" />
+                </Grid>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

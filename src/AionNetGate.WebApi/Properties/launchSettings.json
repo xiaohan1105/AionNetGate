@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "AionNetGate.WebApi": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:3684;http://localhost:3685"
+    }
+  }
+}

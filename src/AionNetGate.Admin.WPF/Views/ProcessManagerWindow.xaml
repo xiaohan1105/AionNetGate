@@ -1,0 +1,171 @@
+<Window x:Class="AionNetGate.Admin.WPF.Views.ProcessManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:AionNetGate.Admin.WPF.ViewModels"
+        xmlns:converters="clr-namespace:AionNetGate.Admin.WPF.Converters"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:ProcessManagerViewModel}"
+        Title="{Binding ClientInfo, StringFormat='进程管理 - {0}'}"
+        Height="600" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E1E">
+
+    <Window.Resources>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+        <converters:BytesToMBConverter x:Key="BytesToMBConverter"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <Border Grid.Row="0" Background="#2D2D30" Padding="10" BorderBrush="#3F3F46" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧按钮 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="刷新列表"
+                            Command="{Binding LoadProcessesCommand}"
+                            MinWidth="80" Padding="10,5" Margin="0,0,10,0"/>
+
+                    <Button Content="结束进程"
+                            Command="{Binding KillProcessCommand}"
+                            MinWidth="80" Padding="10,5"
+                            IsEnabled="{Binding SelectedProcess, Converter={StaticResource NullToVisibilityConverter}}"
+                            Foreground="Red"/>
+
+                    <ToggleButton Content="自动刷新"
+                                  IsChecked="{Binding AutoRefresh}"
+                                  MinWidth="80" Padding="10,5" Margin="10,0,0,0"/>
+                </StackPanel>
+
+                <!-- 搜索框 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,0">
+                    <TextBlock Text="搜索:"
+                               VerticalAlignment="Center"
+                               Foreground="White"
+                               Margin="0,0,5,0"/>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             MinWidth="200" Padding="5"
+                             VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- 统计信息 -->
+                <TextBlock Grid.Column="2"
+                           Text="{Binding TotalProcesses, StringFormat='总计: {0} 个进程'}"
+                           VerticalAlignment="Center"
+                           Foreground="White"
+                           FontSize="14"/>
+            </Grid>
+        </Border>
+
+        <!-- 进程列表 -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Processes}"
+                  SelectedItem="{Binding SelectedProcess}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  GridLinesVisibility="Horizontal"
+                  Background="#1E1E1E"
+                  Foreground="White"
+                  BorderBrush="#3F3F46"
+                  HorizontalGridLinesBrush="#3F3F46"
+                  RowBackground="#1E1E1E"
+                  AlternatingRowBackground="#252526">
+
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="结束进程" Command="{Binding KillProcessCommand}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="❌" FontSize="16"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem Header="刷新" Command="{Binding LoadProcessesCommand}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="🔄" FontSize="16"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+
+            <DataGrid.Columns>
+                <!-- 进程 ID -->
+                <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="#9CDCFE"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 进程名 -->
+                <DataGridTextColumn Header="进程名" Binding="{Binding ProcessName}" Width="200">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Foreground" Value="#00D7FF"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 窗口标题 -->
+                <DataGridTextColumn Header="窗口标题" Binding="{Binding WindowTitle}" Width="*" MinWidth="200">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#D4D4D4"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 内存使用 -->
+                <DataGridTemplateColumn Header="内存使用" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock HorizontalAlignment="Right" Foreground="#CE9178">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:N2} MB">
+                                        <Binding Path="MemoryUsage" Converter="{StaticResource BytesToMBConverter}"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- CPU 使用率 -->
+                <DataGridTemplateColumn Header="CPU 使用率" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding CpuUsage, StringFormat='{}{0:F1}%'}"
+                                       HorizontalAlignment="Right"
+                                       Foreground="#4EC9B0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- 底部状态栏 -->
+        <Border Grid.Row="2" Background="#007ACC" Padding="5">
+            <TextBlock Text="{Binding StatusText}"
+                       Foreground="White"
+                       FontSize="12"
+                       VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>

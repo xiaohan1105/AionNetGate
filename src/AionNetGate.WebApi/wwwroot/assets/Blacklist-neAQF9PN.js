@@ -1,1 +1,0 @@
-import{k as s,W as a,Y as t,N as e,Z as i,X as o}from"./vendor-B61HbF2W.js";import{e as r,A as l}from"./naive-ui-M8e04B8j.js";const m=s({__name:"Blacklist",setup:s=>(s,m)=>(o(),a(e(r),{title:"IP 黑名单"},{default:t(()=>[i(e(l),{description:"功能开发中..."})]),_:1}))});export{m as default};

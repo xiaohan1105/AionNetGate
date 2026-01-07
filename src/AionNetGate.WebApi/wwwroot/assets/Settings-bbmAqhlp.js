@@ -1,1 +1,0 @@
-import{k as s,W as a,Y as t,N as e,Z as i,X as o}from"./vendor-B61HbF2W.js";import{e as r,A as n}from"./naive-ui-M8e04B8j.js";const m=s({__name:"Settings",setup:s=>(s,m)=>(o(),a(e(r),{title:"系统设置"},{default:t(()=>[i(e(n),{description:"功能开发中..."})]),_:1}))});export{m as default};
